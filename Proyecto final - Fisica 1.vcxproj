@@ -138,9 +138,14 @@
     <ClCompile Include="Librerias\Archivos fuentes\imgui_widgets.cpp" />
     <ClCompile Include="Librerias\Archivos fuentes\rlImGui.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="Raylib_utils\raylib_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Imgui_utils\imgui_utils.hpp" />
+    <ClInclude Include="Imgui_utils\imgui_utils.h" />
+    <ClInclude Include="Raylib_utils\raylib_utils.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

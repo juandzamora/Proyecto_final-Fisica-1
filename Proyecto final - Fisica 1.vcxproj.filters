@@ -36,10 +36,19 @@
     <ClCompile Include="Librerias\Archivos fuentes\rlImGui.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Raylib_utils\raylib_utils.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Imgui_utils\imgui_utils.hpp">
+    <ClInclude Include="Imgui_utils\imgui_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Raylib_utils\raylib_utils.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="README.md" />
   </ItemGroup>
 </Project>
