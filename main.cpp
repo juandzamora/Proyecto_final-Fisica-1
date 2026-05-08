@@ -5,12 +5,14 @@ using std::acos;
 using std::pow;
 using std::sqrt;
 #include <vector>
-
+#include <string>
+#include <iostream>
 
 #include <raylib.h>
 #include <raymath.h>
 
 #include <rlImGui.h>
+#include <rlImGuiColors.h>
 #include <imgui.h>
 
 void drawBezierCurve(Vector3 inicio,Vector3 final,Vector3 control,Color color)
@@ -36,6 +38,8 @@ void drawBezierCurve(Vector3 inicio,Vector3 final,Vector3 control,Color color)
 
 void manageInput(Camera3D &camara, float &angulo_x, float &angulo_y)
 {
+	const float epsilon = 0.001f;
+
 	if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
 	{
 		Vector2 mouse_delta = GetMouseDelta();
@@ -46,11 +50,10 @@ void manageInput(Camera3D &camara, float &angulo_x, float &angulo_y)
 		angulo_x += mouse_delta.x * sensibilidadX;
 		angulo_y += mouse_delta.y * sensibilidadY;
 			
-		const float epsilon = 0.01;
 		angulo_y = Clamp(angulo_y, 0 + epsilon, PI - epsilon);
 
 		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2));
-
+			
 		camara.position = {
 			(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
 			(cos(angulo_y)*hipotenusa) + camara.target.y,
@@ -60,21 +63,33 @@ void manageInput(Camera3D &camara, float &angulo_x, float &angulo_y)
 
 	if(IsKeyDown(KEY_W))
 	{
-		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2)) - 0.1f;
+		float cambio = 1.5f;
+		if(IsKeyDown(KEY_LEFT_SHIFT))
+			cambio = 1.0f;
+		if(IsKeyDown(KEY_RIGHT_CONTROL))
+			cambio = 2.0f;
 
-		//float cosX = cos(angulo_x);
-		//float senY = sin(angulo_y);
+		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2)) - cambio;
 
-		camara.position = {
-			(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
-			(cos(angulo_y)*hipotenusa) + camara.target.y,
-			(sin(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.z
-		};
+		if(hipotenusa + epsilon > 0)
+		{
+			camara.position = {
+				(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
+				(cos(angulo_y)*hipotenusa) + camara.target.y,
+				(sin(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.z
+			};
+		}
 	}
 
 	if(IsKeyDown(KEY_S))
 	{
-		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2)) + 0.1f;
+		float cambio = 1.5f;
+		if(IsKeyDown(KEY_LEFT_SHIFT))
+			cambio = 1.0f;
+		if(IsKeyDown(KEY_RIGHT_CONTROL))
+			cambio = 2.0f;
+
+		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2)) + cambio;
 
 		camara.position = {
 			(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
@@ -96,6 +111,137 @@ void manageInput(Camera3D &camara, float &angulo_x, float &angulo_y)
 	}
 }
 
+class cPlaneta
+{
+	private:
+		Vector2 velocidad;
+		Vector2 aceleracion;
+
+		Vector2 posicion_inicial;
+		Vector2 posicion;
+
+		float tiempo_actual;
+
+		std::string nombre_planeta;
+
+		std::vector<Vector3> path;
+
+		Color color;
+
+		float radio;
+
+		void actualizarVelocidad(double tiempo_que_paso)
+		{
+			velocidad.x = velocidad.x + aceleracion.x * (tiempo_que_paso/2.0);
+			velocidad.y = velocidad.y + aceleracion.y * (tiempo_que_paso/2.0);
+		}
+
+		void actualizarAceleracion()
+		{
+			//Esto se veria como (reemplazar x o y dependiendo de la aceleración a calcular)
+			/*
+			* ax = aceleración en x
+						
+						        x
+				ax = -1*-------------------
+					     (x^2 + y^2)^(3/2)
+			*/
+			float denominador_aceleracion = pow(pow(posicion.x, 2) + pow(posicion.y, 2), 3.0 / 2.0);
+
+			if(denominador_aceleracion == 0)
+				denominador_aceleracion = 1;
+
+			aceleracion.x = -1*(posicion.x/denominador_aceleracion);
+			aceleracion.y = -1*(posicion.y/denominador_aceleracion);
+		}
+
+
+	public:
+		cPlaneta(std::string nombre_planeta, Vector2 pos_inicial, float radio, Color color, Vector2 velocidad_inicial = {0, 0},bool ajustar_velocidad = true)
+		{
+			const float factor_de_escalado_radio = 1.0f/2400.0f;
+			const float factor_de_escalado_distancia = 1.0f/2'500'000.0f;
+			
+			
+			this->nombre_planeta = nombre_planeta;
+
+			pos_inicial.x *= factor_de_escalado_distancia;
+
+			if(ajustar_velocidad)
+			{
+				float v_orbital = sqrt(1.0f / pos_inicial.x);
+				this->velocidad = {0, v_orbital * 0.5f};
+			}
+			else
+				this->velocidad = velocidad_inicial;
+
+			this->radio = radio * factor_de_escalado_radio;
+
+			this->posicion_inicial = pos_inicial;
+
+			this->posicion = pos_inicial;
+
+			this->tiempo_actual = 0;
+
+			this->color = color;
+		}
+
+		/*
+		*/
+		void updatePosition(double tiempo_que_paso)
+		{
+			tiempo_actual+= tiempo_que_paso;
+			actualizarAceleracion();
+			actualizarVelocidad(tiempo_que_paso);
+			//Actualizar la posición
+			posicion.x = posicion.x + velocidad.x * tiempo_que_paso;
+			posicion.y = posicion.y + velocidad.y * tiempo_que_paso;
+		}
+
+		Vector2 getAceleracion()
+		{
+			return aceleracion;
+		}
+
+		Vector2 getVelocidad()
+		{
+			return velocidad;
+		}
+
+		float getRadio()
+		{
+			return radio;
+		}
+
+		Color getColor()
+		{
+			return color;
+		}
+
+		Vector3 getPosicion(float y_actual, bool esta_detenido)
+		{
+			Vector3 posicion_planeta = {posicion.x, y_actual,  posicion.y};
+			
+			if(path.size() < 10000 && !esta_detenido)
+				path.push_back(posicion_planeta);
+
+			return posicion_planeta;
+		}
+
+		std::vector<Vector3> getPath()
+		{
+			return path;
+		}
+
+		std::string getNombre()
+		{
+			return nombre_planeta;
+		}
+};
+
+
+
+
 int main(void)
 {
     const int screenWidth = 800;
@@ -116,15 +262,17 @@ int main(void)
 	camara.fovy = 45.0f;
 	camara.projection = CAMERA_PERSPECTIVE;
 
-    Vector3 ballPosition = { 0.0f, 0.0f, 0.0f};
+    Vector3 posicion_sol = { 0.0f, 0.0f, 0.0f};
 
-	const int max_fps = 60;
+	const int max_fps = 144;
 
     SetTargetFPS(max_fps);
 	
 	//rlImGui setup
 	rlImGuiSetup(true); 
 	ImGuiIO& io = ImGui::GetIO();
+
+	int velocidad = 1;
 
 	bool boton_abajo = false;
 
@@ -137,65 +285,106 @@ int main(void)
 		angulo_x = acos(camara.position.x/(sin(angulo_y) * hipotenusa));
 	}
 
-	float angulo_bola = 0.0f;
-	std::vector<Vector3> puntos_tierra;
-	bool not_full_circle = true;
+	//Datos de https://planetario.buenosaires.gob.ar/sites/default/files/2018-09/Tablas-%20El%20sistema%20solar%20en%20numeros-docentes.pdf y https://science.nasa.gov/resource/solar-system-sizes/. Todos los datos estan sus km reales, excepto el sol
+	std::vector<cPlaneta> lista_planetas = {
+		cPlaneta("Sol", {0, 0}, 15000.0f, ORANGE, {0, 0}, false),
+		cPlaneta("Mercurio", {57909175.0f, 0}, 2440, LIGHTGRAY),
+		cPlaneta("Venus", {108208930.0f, 0}, 6052, BEIGE),			
+		cPlaneta("Tierra", {149597890.0f, 0}, 6371, BLUE),
+		cPlaneta("Marte", {227936640.0f , 0}, 3390, RED),
+		cPlaneta("Jupiter", {778412020.0f, 0}, 69911, ORANGE),
+		cPlaneta("Saturno", {1426725400.0f, 0}, 58232, GOLD),
+		cPlaneta("Urano", { 2870972200.0f, 0}, 25362, SKYBLUE),
+		cPlaneta("Neptuno", {4498252900.0f, 0}, 24622, DARKBLUE)
+	};
+
+	float delta_tiempo = 0.1;
+	bool pausar_simulacion = false;
+
+
 
     while (!WindowShouldClose())
 	{	
-		//input
-		if(!io.WantCaptureKeyboard)
-			manageInput(camara, angulo_x, angulo_y);
-
 		BeginDrawing();
 		rlImGuiBegin();
 
 		ClearBackground(BLACK); 
 		BeginMode3D(camara);
 
-		float suma_ambos = 0;
-
 		//Mover la pelota
-		ImGui::Begin("Planeta config");
-		ImGui::TextWrapped("config");
-		ImGui::DragFloat("Mover en z", &ballPosition.y, 0.01);
-		ImGui::DragFloat("Ambas", &suma_ambos);
-		ImGui::End();
-
-		camara.position += {suma_ambos, suma_ambos, 0};
-
-		DrawSphere(ballPosition, 1, YELLOW);
-		const float distancia_tierra = 3;
-
-		Vector3 tierra_posicion = {cos(angulo_bola)*distancia_tierra, ballPosition.y,  sin(angulo_bola)*distancia_tierra};
-
-		DrawSphere(tierra_posicion, 0.5f, BLUE);
+		ImGui::Begin("Menu");
+		ImGui::TextWrapped("Configuracion general");
+		ImGui::DragInt("Velocidad", &velocidad, 1, 0);
 		
-		angulo_bola += 0.01f;
+		static std::string texto_pausa;
 
-		const float epsilon = 0.000001f;
+		if(pausar_simulacion)
+			texto_pausa = "Despausar simulacion";
+		else
+			texto_pausa = "Pausar simulacion";
 
-		if(angulo_bola > 2*PI + epsilon)
+		if(ImGui::Button(texto_pausa.c_str()))
+			pausar_simulacion = !pausar_simulacion;
+		//TODO
+		if(!ImGui::Button("Cargar de archivo (proximamente)"));
+
+		//Lista planetas
+		if(ImGui::CollapsingHeader("Ver lista de planetas"))
 		{
-			angulo_bola = 0; 
+			ImGui::Indent();
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				if (!ImGui::CollapsingHeader(planeta.getNombre().c_str()))
+					continue;
 
-			not_full_circle = false;
+				Vector3 posicion = planeta.getPosicion(posicion_sol.y, pausar_simulacion);
+				Vector2 velocidad = planeta.getVelocidad();
+				Vector2 aceleracion = planeta.getAceleracion();
+				ImGui::Indent();
+					ImGui::Text("Posicion del planeta: ");
+					ImGui::SameLine();
+					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", posicion.x, posicion.z);
+
+					ImGui::Text("Velocidad del planeta: ");
+					ImGui::SameLine();
+					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", velocidad.x, velocidad.y);
+				
+					ImGui::Text("Aceleracion del planeta: ");
+					ImGui::SameLine();
+					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", aceleracion.x, aceleracion.y);	
+				ImGui::Unindent();
+			}
+			ImGui::Unindent();
+		}
+		
+		ImGui::End();
+		
+
+		if(!pausar_simulacion)
+		{
+			for(int i = 0; i < velocidad; i++)
+				for(cPlaneta & planeta : lista_planetas)
+					planeta.updatePosition(delta_tiempo);
 		}
 
-		if(not_full_circle)
-			puntos_tierra.push_back(tierra_posicion);
-
-		for(Vector3 vect: puntos_tierra)
-			DrawPoint3D(vect, WHITE);
-
-		//drawBezierCurve({distancia_tierra, 0, 0}, tierra_posicion, ballPosition, WHITE);
-
-		DrawGrid(10, 1.0f); 
+		//DrawSphere(tierra.getPosicion(ballPosition.y),0.5f,BLUE);
+		for(cPlaneta & planeta : lista_planetas)
+			DrawSphere(planeta.getPosicion(posicion_sol.y, pausar_simulacion), planeta.getRadio(), planeta.getColor());
 		
+		for(cPlaneta & planeta : lista_planetas)
+			for(Vector3 & vect: planeta.getPath())
+				DrawPoint3D(vect, WHITE);
+
+		//DrawGrid(100, 40.0f); 
+
 		EndMode3D();
 		//Renderizar en pantalla
 		rlImGuiEnd();
 		EndDrawing();
+
+		//input
+		if(!io.WantCaptureKeyboard)
+			manageInput(camara, angulo_x, angulo_y);
     }
 
 	rlImGuiShutdown();
