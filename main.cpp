@@ -15,30 +15,11 @@ using std::sqrt;
 #include <rlImGuiColors.h>
 #include <imgui.h>
 
-void drawBezierCurve(Vector3 inicio,Vector3 final,Vector3 control,Color color)
-{
-	Vector3 punto_actual = inicio;
-
-	punto_actual.y = inicio.y;
-
-	if(punto_actual.y != control.y && punto_actual.y != final.y)
-		return;
-
-	float tiempo = 0.0f;
-	while(tiempo <= 1.0f)
-	{
-		punto_actual.x = pow((1 - tiempo), 2) * inicio.x + 2*(1-tiempo)*tiempo*control.x + pow(tiempo, 2)*final.x;
-		punto_actual.z = pow((1 - tiempo), 2) * inicio.z + 2*(1-tiempo)*tiempo*control.z + pow(tiempo, 2)*final.z;
-
-		DrawPoint3D(punto_actual, color);
-
-		tiempo += 0.01f;
-	}
-}
+static float z_de_todo_el_proyecto = 0.0f;
 
 void manageInput(Camera3D &camara, float &angulo_x, float &angulo_y)
 {
-	const float epsilon = 0.001f;
+	const float epsilon = 0.01f;
 
 	if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
 	{
@@ -114,26 +95,85 @@ void manageInput(Camera3D &camara, float &angulo_x, float &angulo_y)
 class cPlaneta
 {
 	private:
+		//Caracteristicas del plantea
+		std::string nombre_planeta;
+
 		Vector2 velocidad;
 		Vector2 aceleracion;
 
-		Vector2 posicion_inicial;
 		Vector2 posicion;
 
-		float tiempo_actual;
+		float tiempo_orbitando;
 
-		std::string nombre_planeta;
-
-		std::vector<Vector3> path;
-
+		//Caracteristicas del planeta para renderizarlo
 		Color color;
-
 		float radio;
 
-		void actualizarVelocidad(double tiempo_que_paso)
+		//Variables de ayuda para Path de aqui para abajo:
+		std::vector<Vector3> path;
+		const float intervalo_de_guardado = 2.0f;
+		//Para guardar un intervalo para saber cuando se llegue a intervalo_de_guardado
+		float intervalo_tiempo;
+
+		bool es_sol;
+
+		//Para reescribir path cuando se haya completado una vuelta
+		size_t index_actual;
+
+		//Guardado del angulo previo 
+		float angulo_anterior;
+
+		//Identifican si ya completo su primera vuelta y si ya dio la primera media vuelta desde su origen (esta ultima se reinicia cada vez que pasa aprox por el origen)
+		bool completo_una_vuelta;
+		bool dio_media_vuelta;
+
+		void modificarPath(float dt)
 		{
-			velocidad.x = velocidad.x + aceleracion.x * (tiempo_que_paso/2.0);
-			velocidad.y = velocidad.y + aceleracion.y * (tiempo_que_paso/2.0);
+			if(es_sol)
+				return;
+
+			this->intervalo_tiempo += dt;
+
+			if(intervalo_tiempo >= intervalo_de_guardado)
+			{
+				float angulo = atan2(posicion.y, posicion.x);
+
+				this->intervalo_tiempo = 0.0f;
+
+				if(angulo > 0 && angulo_anterior < 0)
+				{
+					completo_una_vuelta = true;
+					dio_media_vuelta = false;
+
+					index_actual = 0;
+				}
+
+				if(completo_una_vuelta)
+				{
+					if(index_actual < path.size())
+					{
+						path[index_actual] = getPosicion();
+
+						index_actual++;
+					}
+				}
+				else
+					path.push_back(getPosicion());
+
+				//Dio una media vuelta
+				if(angulo < 0 && angulo_anterior > 0)
+				{
+					dio_media_vuelta = true;
+				}
+
+				angulo_anterior = angulo;
+			}
+		}
+
+		void actualizarVelocidad(double dt)
+		{
+			velocidad.x = velocidad.x + aceleracion.x * (dt/2.0);
+			velocidad.y = velocidad.y + aceleracion.y * (dt/2.0);
 		}
 
 		void actualizarAceleracion()
@@ -157,13 +197,30 @@ class cPlaneta
 
 
 	public:
-		cPlaneta(std::string nombre_planeta, Vector2 pos_inicial, float radio, Color color, Vector2 velocidad_inicial = {0, 0},bool ajustar_velocidad = true)
+		cPlaneta(std::string nombre_planeta, Vector2 pos_inicial, float radio, Color color, Vector2 velocidad_inicial = {0, 0},bool ajustar_velocidad = true, bool es_sol = false)
 		{
 			const float factor_de_escalado_radio = 1.0f/2400.0f;
 			const float factor_de_escalado_distancia = 1.0f/2'500'000.0f;
-			
-			
+
 			this->nombre_planeta = nombre_planeta;
+
+			//Tiempo que a "pasado" (o simulado) desde que empezo la simulación. Se actualiza con dt
+			this->tiempo_orbitando = 0;
+
+
+			//inicializacion variables necesarias para Path
+			{
+				//Para saber si es el sol (y no dibujarle path)
+				this->es_sol = es_sol;
+
+				this->completo_una_vuelta = false;
+				this->dio_media_vuelta = false;
+
+				this->angulo_anterior = 0;
+
+				//Para que esto funcione, dt tiene que ser constante
+				this->intervalo_tiempo = 0;
+			}
 
 			pos_inicial.x *= factor_de_escalado_distancia;
 
@@ -177,25 +234,22 @@ class cPlaneta
 
 			this->radio = radio * factor_de_escalado_radio;
 
-			this->posicion_inicial = pos_inicial;
-
 			this->posicion = pos_inicial;
-
-			this->tiempo_actual = 0;
 
 			this->color = color;
 		}
 
-		/*
-		*/
-		void updatePosition(double tiempo_que_paso)
+		//dt = delta de tiempo, tiempo que paso entre el anterior calculo (o llamado a esta función) a este. Es simulado, no tiene que ser realista.
+		void updatePosition(double dt)
 		{
-			tiempo_actual+= tiempo_que_paso;
+			tiempo_orbitando += dt;
 			actualizarAceleracion();
-			actualizarVelocidad(tiempo_que_paso);
+			actualizarVelocidad(dt);
 			//Actualizar la posición
-			posicion.x = posicion.x + velocidad.x * tiempo_que_paso;
-			posicion.y = posicion.y + velocidad.y * tiempo_que_paso;
+			posicion.x = posicion.x + velocidad.x * dt;
+			posicion.y = posicion.y + velocidad.y * dt;
+
+			modificarPath(dt);
 		}
 
 		Vector2 getAceleracion()
@@ -218,17 +272,14 @@ class cPlaneta
 			return color;
 		}
 
-		Vector3 getPosicion(float y_actual, bool esta_detenido)
+		Vector3 getPosicion()
 		{
-			Vector3 posicion_planeta = {posicion.x, y_actual,  posicion.y};
-			
-			if(path.size() < 10000 && !esta_detenido)
-				path.push_back(posicion_planeta);
+			Vector3 posicion_planeta = {posicion.x, z_de_todo_el_proyecto,  posicion.y};
 
 			return posicion_planeta;
 		}
 
-		std::vector<Vector3> getPath()
+		std::vector<Vector3> & getPath()
 		{
 			return path;
 		}
@@ -236,6 +287,16 @@ class cPlaneta
 		std::string getNombre()
 		{
 			return nombre_planeta;
+		}
+
+		bool yaDioUnaVuelta()
+		{
+			return completo_una_vuelta;
+		}
+
+		size_t getTamañoPath()
+		{
+			return path.size();
 		}
 };
 
@@ -272,13 +333,10 @@ int main(void)
 	rlImGuiSetup(true); 
 	ImGuiIO& io = ImGui::GetIO();
 
-	int velocidad = 1;
-
-	bool boton_abajo = false;
-
 	float angulo_y = 0.0f;
 	float angulo_x = 0.0f;
 
+	//Calcula los angulos iniciales de la camara
 	{
 		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2));
 		angulo_y = acos(camara.position.y/hipotenusa);
@@ -287,7 +345,7 @@ int main(void)
 
 	//Datos de https://planetario.buenosaires.gob.ar/sites/default/files/2018-09/Tablas-%20El%20sistema%20solar%20en%20numeros-docentes.pdf y https://science.nasa.gov/resource/solar-system-sizes/. Todos los datos estan sus km reales, excepto el sol
 	std::vector<cPlaneta> lista_planetas = {
-		cPlaneta("Sol", {0, 0}, 15000.0f, ORANGE, {0, 0}, false),
+		cPlaneta("Sol", {0, 0}, 15000.0f, ORANGE, {0, 0}, false, true),
 		cPlaneta("Mercurio", {57909175.0f, 0}, 2440, LIGHTGRAY),
 		cPlaneta("Venus", {108208930.0f, 0}, 6052, BEIGE),			
 		cPlaneta("Tierra", {149597890.0f, 0}, 6371, BLUE),
@@ -298,10 +356,10 @@ int main(void)
 		cPlaneta("Neptuno", {4498252900.0f, 0}, 24622, DARKBLUE)
 	};
 
-	float delta_tiempo = 0.1;
+	//Variables de la simulación
+	const float delta_tiempo = 0.1;
 	bool pausar_simulacion = false;
-
-
+	int velocidad = 1;
 
     while (!WindowShouldClose())
 	{	
@@ -337,7 +395,7 @@ int main(void)
 				if (!ImGui::CollapsingHeader(planeta.getNombre().c_str()))
 					continue;
 
-				Vector3 posicion = planeta.getPosicion(posicion_sol.y, pausar_simulacion);
+				Vector3 posicion = planeta.getPosicion();
 				Vector2 velocidad = planeta.getVelocidad();
 				Vector2 aceleracion = planeta.getAceleracion();
 				ImGui::Indent();
@@ -348,10 +406,14 @@ int main(void)
 					ImGui::Text("Velocidad del planeta: ");
 					ImGui::SameLine();
 					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", velocidad.x, velocidad.y);
-				
+					
 					ImGui::Text("Aceleracion del planeta: ");
 					ImGui::SameLine();
-					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", aceleracion.x, aceleracion.y);	
+					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", aceleracion.x, aceleracion.y);
+
+					ImGui::Text("Tamaño path: ");
+					ImGui::SameLine();
+					ImGui::TextColored(rlImGuiColors::Convert(BLUE), "%d", planeta.getTamañoPath());
 				ImGui::Unindent();
 			}
 			ImGui::Unindent();
@@ -369,11 +431,21 @@ int main(void)
 
 		//DrawSphere(tierra.getPosicion(ballPosition.y),0.5f,BLUE);
 		for(cPlaneta & planeta : lista_planetas)
-			DrawSphere(planeta.getPosicion(posicion_sol.y, pausar_simulacion), planeta.getRadio(), planeta.getColor());
+			DrawSphere(planeta.getPosicion(), planeta.getRadio(), planeta.getColor());
 		
+
 		for(cPlaneta & planeta : lista_planetas)
-			for(Vector3 & vect: planeta.getPath())
-				DrawPoint3D(vect, WHITE);
+		{
+			std::vector<Vector3>& puntos = planeta.getPath();
+
+			for(size_t index = 1; index < puntos.size(); index++)
+			{
+				if(index + 1 == puntos.size() && planeta.yaDioUnaVuelta())
+					DrawLine3D(puntos[index], puntos[0], WHITE);
+
+				DrawLine3D(puntos[index - 1], puntos[index], WHITE);
+			}
+		}
 
 		//DrawGrid(100, 40.0f); 
 
