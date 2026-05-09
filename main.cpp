@@ -242,7 +242,12 @@ class cCamara3DCustom
 		const float epsilon = 0.01f;
 
 		bool mantener_fija_en_planeta;
+		int id_planeta_fijo;
 		float factor_zoom_cuando_fijo;
+		//ultimo_cambio_zoom guarda el valor del ultimo cambio a zoom para restarselo a factor_zoom_cuando_fijo en caso de que la hipotenusa se vuelva 0
+		float ultimo_cambio_zoom;
+		float factor_anguloX_cuando_fijo;
+		float factor_anguloY_cuando_fijo;
 
 		inline float getHipotenusa()
 		{
@@ -273,15 +278,24 @@ class cCamara3DCustom
 			const float sensibilidadX = 0.0075;
 			const float sensibilidadY = 0.0025;
 
-			angulo_x += mouse_delta.x * sensibilidadX;
-			angulo_y += mouse_delta.y * sensibilidadY;
-			
-			angulo_y = Clamp(angulo_y, 0 + epsilon, PI - epsilon);
+			float cambio_en_angulo_x = mouse_delta.x * sensibilidadX;
+			float cambio_en_angulo_y = mouse_delta.y * sensibilidadY;
+
+			if(mantener_fija_en_planeta)
+			{
+				factor_anguloX_cuando_fijo += cambio_en_angulo_x;
+				factor_anguloY_cuando_fijo += cambio_en_angulo_y;
+				return;
+			}
+
+			angulo_x += cambio_en_angulo_x;
+			angulo_y = Clamp(angulo_y + cambio_en_angulo_y, 0 + epsilon, PI - epsilon);
+
 
 			actualizarPosicion(getHipotenusa());
 		}
 
-		void fijarFirmeAPlaneta(Vector3 posicion_planeta, Vector3 posicion_fija)
+		void fijarFirmeAPlaneta(Vector3 posicion_planeta, Vector3 posicion_fija, float radio_planeta)
 		{
 			camara.target = posicion_planeta;
 
@@ -289,11 +303,22 @@ class cCamara3DCustom
 
 			float hipotenusa = sqrt(pow(posicion_fija.x, 2) + pow(posicion_fija.y, 2) + pow(posicion_fija.z, 2)) + this->factor_zoom_cuando_fijo;
 
-			angulo_y = acos((posicion_fija.y - camara.target.y)/hipotenusa);
-			angulo_x = atan2(posicion_fija.z - camara.target.z, posicion_fija.x - camara.target.x);
+			if(hipotenusa < radio_planeta * 2)
+			{
+				hipotenusa -= this->ultimo_cambio_zoom;
 
-			if(hipotenusa + epsilon > 0)
-				actualizarPosicion(hipotenusa);
+				this->factor_zoom_cuando_fijo -= this->ultimo_cambio_zoom;
+				this->ultimo_cambio_zoom = 0.0f;
+			}
+
+			
+			//Movimiento con mouse cuando se esta firme a un planeta
+			angulo_y = acos((posicion_fija.y - camara.target.y)/hipotenusa);
+			angulo_x = atan2(posicion_fija.z - camara.target.z, posicion_fija.x - camara.target.x) + factor_anguloX_cuando_fijo;
+
+			angulo_y = Clamp(angulo_y + factor_anguloY_cuando_fijo, 0 + epsilon, PI - epsilon);
+
+			actualizarPosicion(hipotenusa);
 		}
 
 	public:
@@ -314,8 +339,13 @@ class cCamara3DCustom
 			angulo_y = acos(camara.position.y/hipotenusa);
 			angulo_x = atan2(camara.position.z - camara.target.z, camara.position.x - camara.target.x);
 
-			this->factor_zoom_cuando_fijo = 0.0f;
+			//Variables para fijar en planeta
 			this->mantener_fija_en_planeta = false;
+			this->id_planeta_fijo = -1;
+			this->factor_zoom_cuando_fijo = 0.0f;
+			this->ultimo_cambio_zoom = 0.0f;
+			this->factor_anguloX_cuando_fijo = 0.0f;
+			this->factor_anguloY_cuando_fijo = 0.0f;
 		}
 
 		void detectInput()
@@ -332,11 +362,16 @@ class cCamara3DCustom
 			if(mantener_fija_en_planeta)
 			{
 				if(IsKeyDown(KEY_W))
+				{
 					this->factor_zoom_cuando_fijo += cambio * -1;
-
-				if(IsKeyDown(KEY_S))
-					this->factor_zoom_cuando_fijo += cambio;
+					this->ultimo_cambio_zoom = cambio * -1;
+				}
 				
+				if(IsKeyDown(KEY_S))
+				{
+					this->factor_zoom_cuando_fijo += cambio;
+					this->ultimo_cambio_zoom = cambio;
+				}
 				return;
 			}
 
@@ -352,18 +387,37 @@ class cCamara3DCustom
 			return camara;
 		}
 		
-		void cambiarPlanetaTarget(cPlaneta & planeta, bool mantener_fija_en_planeta, Vector3 posicion_fija = {0.0f, 40.0f, 40.0f})
+		//El id tiene que ser positivo
+		void cambiarPlanetaTarget(cPlaneta & planeta, int id_planeta, bool mantener_fija_en_planeta)
 		{
+			if(id_planeta < 0)
+				return;
+
 			if(mantener_fija_en_planeta)
 			{
-				fijarFirmeAPlaneta(planeta.getPosicion(), posicion_fija);
+				if(this->id_planeta_fijo != id_planeta)
+				{
+					this->factor_zoom_cuando_fijo = 0.0f;
+					this->ultimo_cambio_zoom = 0.0f;
+					this->factor_anguloX_cuando_fijo = 0.0f;
+					this->factor_anguloY_cuando_fijo = 0.0f;
+					this->id_planeta_fijo = id_planeta;
+				}
+
+				float radio_planeta = planeta.getRadio();
+
+				float posicion_fija_coordenadas = radio_planeta/0.5f;
+
+				Vector3 posicion_fija =  {posicion_fija_coordenadas, posicion_fija_coordenadas, posicion_fija_coordenadas};
+
+				fijarFirmeAPlaneta(planeta.getPosicion(), posicion_fija, radio_planeta);
 				this->mantener_fija_en_planeta = true;
 
 				return;
 			}
 
 			this->mantener_fija_en_planeta = false;
-			this->factor_zoom_cuando_fijo = 0.0f;
+
 			camara.target = planeta.getPosicion();
 
 			float hipotenusa = getHipotenusa();
@@ -383,7 +437,7 @@ int main(void)
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "Proyecto final - Fisica 1");
 
-	cCamara3DCustom camara({0.0f, 40.0f, 40.0f}, {0.0f, 0.0f, 0.0f});
+	cCamara3DCustom camara({40.0f, 40.0f, 40.0f}, {0.0f, 0.0f, 0.0f});
 
 	const int max_fps = 144;
 
@@ -414,7 +468,7 @@ int main(void)
 	//Size t que recive negativos (no es como que size_t no lo haga, pero aja, por si acaso. size_t es unsigned)
 	long long index_vista_fija = -1;
 	bool fijar_planeta = false;
-	Vector3 posicion_fija_camara = {0.0f, 40.0f, 40.0f};
+
     while (!WindowShouldClose())
 	{	
 		BeginDrawing();
@@ -427,10 +481,8 @@ int main(void)
 		ImGui::Begin("Menu");
 		ImGui::TextWrapped("Configuracion general");
 		ImGui::DragInt("Velocidad", &velocidad, 1, 0, 1000);
-		ImGui::SameLine();
-		ImGui::InputInt(" ", &velocidad);
-		static std::string texto_pausa;
 
+		static std::string texto_pausa;
 		if(pausar_simulacion)
 			texto_pausa = "Despausar simulacion";
 		else
@@ -478,9 +530,6 @@ int main(void)
 						ImGui::EndDisabled();
 						ImGui::SameLine();
 						ImGui::Checkbox("Fijarse a planeta", &fijar_planeta);
-							ImGui::DragFloat("x", &posicion_fija_camara.x, 0.1f);
-							ImGui::DragFloat("y", &posicion_fija_camara.y, 0.1f);
-							ImGui::DragFloat("z", &posicion_fija_camara.z, 0.1f);
 					}
 					else if(ImGui::Button(fijar_camara_texto.c_str()))
 						index_vista_fija = index_actual;
@@ -490,9 +539,9 @@ int main(void)
 			ImGui::Unindent();
 		}		
 		ImGui::End();
-		
+
 		if(index_vista_fija != -1)
-			camara.cambiarPlanetaTarget(lista_planetas[index_vista_fija], fijar_planeta, posicion_fija_camara);
+			camara.cambiarPlanetaTarget(lista_planetas[index_vista_fija], index_vista_fija, fijar_planeta);
 
 		if(!pausar_simulacion)
 		{
