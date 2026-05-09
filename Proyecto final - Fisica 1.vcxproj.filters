@@ -41,9 +41,6 @@
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Imgui_utils\imgui_utils.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="Raylib_utils\raylib_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>

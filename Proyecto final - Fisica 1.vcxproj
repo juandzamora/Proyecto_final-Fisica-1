@@ -141,7 +141,6 @@
     <ClCompile Include="Raylib_utils\raylib_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="Imgui_utils\imgui_utils.h" />
     <ClInclude Include="Raylib_utils\raylib_utils.h" />
   </ItemGroup>
   <ItemGroup>

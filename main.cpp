@@ -17,81 +17,6 @@ using std::sqrt;
 
 static float z_de_todo_el_proyecto = 0.0f;
 
-void manageInput(Camera3D &camara, float &angulo_x, float &angulo_y)
-{
-	const float epsilon = 0.01f;
-
-	if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-	{
-		Vector2 mouse_delta = GetMouseDelta();
-
-		const float sensibilidadX = 0.0075;
-		const float sensibilidadY = 0.0025;
-
-		angulo_x += mouse_delta.x * sensibilidadX;
-		angulo_y += mouse_delta.y * sensibilidadY;
-			
-		angulo_y = Clamp(angulo_y, 0 + epsilon, PI - epsilon);
-
-		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2));
-			
-		camara.position = {
-			(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
-			(cos(angulo_y)*hipotenusa) + camara.target.y,
-			(sin(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.z
-		};
-	}
-
-	if(IsKeyDown(KEY_W))
-	{
-		float cambio = 1.5f;
-		if(IsKeyDown(KEY_LEFT_SHIFT))
-			cambio = 1.0f;
-		if(IsKeyDown(KEY_RIGHT_CONTROL))
-			cambio = 2.0f;
-
-		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2)) - cambio;
-
-		if(hipotenusa + epsilon > 0)
-		{
-			camara.position = {
-				(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
-				(cos(angulo_y)*hipotenusa) + camara.target.y,
-				(sin(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.z
-			};
-		}
-	}
-
-	if(IsKeyDown(KEY_S))
-	{
-		float cambio = 1.5f;
-		if(IsKeyDown(KEY_LEFT_SHIFT))
-			cambio = 1.0f;
-		if(IsKeyDown(KEY_RIGHT_CONTROL))
-			cambio = 2.0f;
-
-		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2)) + cambio;
-
-		camara.position = {
-			(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
-			(cos(angulo_y)*hipotenusa) + camara.target.y,
-			(sin(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.z
-		};
-	}
-
-	if(IsKeyDown(KEY_A))
-	{
-		camara.position.x += 0.1f;
-		camara.target.x += 0.1f;
-	}
-
-	if(IsKeyDown(KEY_D))
-	{
-		camara.position.x -= 0.1f;
-		camara.target.x -= 0.1f;
-	}
-}
-
 class cPlaneta
 {
 	private:
@@ -102,6 +27,8 @@ class cPlaneta
 		Vector2 aceleracion;
 
 		Vector2 posicion;
+		//Para hacer que la camara se mueva con el planeta
+		Vector2 posicion_anterior;
 
 		float tiempo_orbitando;
 
@@ -274,9 +201,12 @@ class cPlaneta
 
 		Vector3 getPosicion()
 		{
-			Vector3 posicion_planeta = {posicion.x, z_de_todo_el_proyecto,  posicion.y};
+			return {posicion.x, z_de_todo_el_proyecto,  posicion.y};
+		}
 
-			return posicion_planeta;
+		Vector3 getPosicionAnterior()
+		{
+			return {posicion_anterior.x, z_de_todo_el_proyecto,  posicion_anterior.y};
 		}
 
 		std::vector<Vector3> & getPath()
@@ -300,8 +230,150 @@ class cPlaneta
 		}
 };
 
+class cCamara3DCustom
+{
+	private:
+		Camera3D camara;
 
+		//Los angulo en X e Y de la camara
+		float angulo_y;
+		float angulo_x;
 
+		const float epsilon = 0.01f;
+
+		bool mantener_fija_en_planeta;
+		float factor_zoom_cuando_fijo;
+
+		inline float getHipotenusa()
+		{
+			return sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2));
+		}
+
+		inline void actualizarPosicion(const float & hipotenusa)
+		{	
+			camara.position = {
+				(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
+				(cos(angulo_y)*hipotenusa) + camara.target.y,
+				(sin(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.z
+			};
+		}
+
+		void modificarZoom(float factor_de_zoom)
+		{
+			float hipotenusa = getHipotenusa() + factor_de_zoom;
+
+			if(hipotenusa + epsilon > 0)
+				actualizarPosicion(hipotenusa);
+		}
+
+		void moverseEnElEje()
+		{
+			Vector2 mouse_delta = GetMouseDelta();
+
+			const float sensibilidadX = 0.0075;
+			const float sensibilidadY = 0.0025;
+
+			angulo_x += mouse_delta.x * sensibilidadX;
+			angulo_y += mouse_delta.y * sensibilidadY;
+			
+			angulo_y = Clamp(angulo_y, 0 + epsilon, PI - epsilon);
+
+			actualizarPosicion(getHipotenusa());
+		}
+
+		void fijarFirmeAPlaneta(Vector3 posicion_planeta, Vector3 posicion_fija)
+		{
+			camara.target = posicion_planeta;
+
+			camara.position = posicion_fija;
+
+			float hipotenusa = sqrt(pow(posicion_fija.x, 2) + pow(posicion_fija.y, 2) + pow(posicion_fija.z, 2)) + this->factor_zoom_cuando_fijo;
+
+			angulo_y = acos((posicion_fija.y - camara.target.y)/hipotenusa);
+			angulo_x = atan2(posicion_fija.z - camara.target.z, posicion_fija.x - camara.target.x);
+
+			if(hipotenusa + epsilon > 0)
+				actualizarPosicion(hipotenusa);
+		}
+
+	public:
+		
+		cCamara3DCustom(Vector3 posicion_inicial, Vector3 target_inicial, float fovy = 45.0f)
+		{
+			camara = {0};
+			
+			camara.position = posicion_inicial;
+			camara.target = target_inicial;
+
+			camara.fovy = fovy;
+			camara.up = { 0.0f, 1.0f, 0.0f }; 
+			camara.projection = CAMERA_PERSPECTIVE;
+
+			float hipotenusa = getHipotenusa();
+
+			angulo_y = acos(camara.position.y/hipotenusa);
+			angulo_x = atan2(camara.position.z - camara.target.z, camara.position.x - camara.target.x);
+
+			this->factor_zoom_cuando_fijo = 0.0f;
+			this->mantener_fija_en_planeta = false;
+		}
+
+		void detectInput()
+		{
+			if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
+				moverseEnElEje();
+
+			float cambio = 1.5f;
+			if(IsKeyDown(KEY_LEFT_SHIFT))
+				cambio = 1.0f;
+			if(IsKeyDown(KEY_LEFT_CONTROL))
+				cambio = 2.0f;
+
+			if(mantener_fija_en_planeta)
+			{
+				if(IsKeyDown(KEY_W))
+					this->factor_zoom_cuando_fijo += cambio * -1;
+
+				if(IsKeyDown(KEY_S))
+					this->factor_zoom_cuando_fijo += cambio;
+				
+				return;
+			}
+
+			if(IsKeyDown(KEY_W))
+				modificarZoom(-1*cambio);
+
+			if(IsKeyDown(KEY_S))
+				modificarZoom(cambio);
+		}
+
+		Camera3D & getCamara()
+		{
+			return camara;
+		}
+		
+		void cambiarPlanetaTarget(cPlaneta & planeta, bool mantener_fija_en_planeta, Vector3 posicion_fija = {0.0f, 40.0f, 40.0f})
+		{
+			if(mantener_fija_en_planeta)
+			{
+				fijarFirmeAPlaneta(planeta.getPosicion(), posicion_fija);
+				this->mantener_fija_en_planeta = true;
+
+				return;
+			}
+
+			this->mantener_fija_en_planeta = false;
+			this->factor_zoom_cuando_fijo = 0.0f;
+			camara.target = planeta.getPosicion();
+
+			float hipotenusa = getHipotenusa();
+
+			angulo_y = acos(camara.position.y/hipotenusa);
+			angulo_x = atan2(camara.position.z - camara.target.z, camara.position.x - camara.target.x);
+
+			actualizarPosicion(hipotenusa);
+		}
+};
 
 int main(void)
 {
@@ -311,19 +383,7 @@ int main(void)
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "Proyecto final - Fisica 1");
 
-	Camera3D camara = {0};
-
-	//Posicion
-	camara.position = {0.0f, 10.0f, 10.0f};
-	//Objetivo (a donde esta mirando)
-	camara.target = { 0.0f, 0.0f, 0.0f };
-
-	camara.up = { 0.0f, 1.0f, 0.0f }; 
-	
-	camara.fovy = 45.0f;
-	camara.projection = CAMERA_PERSPECTIVE;
-
-    Vector3 posicion_sol = { 0.0f, 0.0f, 0.0f};
+	cCamara3DCustom camara({0.0f, 40.0f, 40.0f}, {0.0f, 0.0f, 0.0f});
 
 	const int max_fps = 144;
 
@@ -332,18 +392,8 @@ int main(void)
 	//rlImGui setup
 	rlImGuiSetup(true); 
 	ImGuiIO& io = ImGui::GetIO();
-
-	float angulo_y = 0.0f;
-	float angulo_x = 0.0f;
-
-	//Calcula los angulos iniciales de la camara
-	{
-		float hipotenusa = sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2));
-		angulo_y = acos(camara.position.y/hipotenusa);
-		angulo_x = acos(camara.position.x/(sin(angulo_y) * hipotenusa));
-	}
-
-	//Datos de https://planetario.buenosaires.gob.ar/sites/default/files/2018-09/Tablas-%20El%20sistema%20solar%20en%20numeros-docentes.pdf y https://science.nasa.gov/resource/solar-system-sizes/. Todos los datos estan sus km reales, excepto el sol
+	
+	//Datos de https://planetario.buenosaires.gob.ar/sites/default/files/2018-09/Tablas-%20El%20sistema%20solar%20en%20numeros-docentes.pdf y https://science.nasa.gov/resource/solar-system-sizes/. Todos los datos estan en sus km reales, excepto el sol
 	std::vector<cPlaneta> lista_planetas = {
 		cPlaneta("Sol", {0, 0}, 15000.0f, ORANGE, {0, 0}, false, true),
 		cPlaneta("Mercurio", {57909175.0f, 0}, 2440, LIGHTGRAY),
@@ -361,19 +411,24 @@ int main(void)
 	bool pausar_simulacion = false;
 	int velocidad = 1;
 
+	//Size t que recive negativos (no es como que size_t no lo haga, pero aja, por si acaso. size_t es unsigned)
+	long long index_vista_fija = -1;
+	bool fijar_planeta = false;
+	Vector3 posicion_fija_camara = {0.0f, 40.0f, 40.0f};
     while (!WindowShouldClose())
 	{	
 		BeginDrawing();
 		rlImGuiBegin();
 
 		ClearBackground(BLACK); 
-		BeginMode3D(camara);
+		BeginMode3D(camara.getCamara());
 
-		//Mover la pelota
+
 		ImGui::Begin("Menu");
 		ImGui::TextWrapped("Configuracion general");
-		ImGui::DragInt("Velocidad", &velocidad, 1, 0);
-		
+		ImGui::DragInt("Velocidad", &velocidad, 1, 0, 1000);
+		ImGui::SameLine();
+		ImGui::InputInt(" ", &velocidad);
 		static std::string texto_pausa;
 
 		if(pausar_simulacion)
@@ -389,9 +444,11 @@ int main(void)
 		//Lista planetas
 		if(ImGui::CollapsingHeader("Ver lista de planetas"))
 		{
+			long long index_actual = -1;
 			ImGui::Indent();
 			for(cPlaneta & planeta : lista_planetas)
 			{
+				index_actual++;
 				if (!ImGui::CollapsingHeader(planeta.getNombre().c_str()))
 					continue;
 
@@ -411,16 +468,31 @@ int main(void)
 					ImGui::SameLine();
 					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", aceleracion.x, aceleracion.y);
 
-					ImGui::Text("Tamaño path: ");
-					ImGui::SameLine();
-					ImGui::TextColored(rlImGuiColors::Convert(BLUE), "%d", planeta.getTamañoPath());
+
+					std::string fijar_camara_texto = "Apuntar camara al planeta##" + std::to_string(index_actual);
+
+					if(index_vista_fija == index_actual)
+					{
+						ImGui::BeginDisabled(true);
+						ImGui::Button(fijar_camara_texto.c_str());
+						ImGui::EndDisabled();
+						ImGui::SameLine();
+						ImGui::Checkbox("Fijarse a planeta", &fijar_planeta);
+							ImGui::DragFloat("x", &posicion_fija_camara.x, 0.1f);
+							ImGui::DragFloat("y", &posicion_fija_camara.y, 0.1f);
+							ImGui::DragFloat("z", &posicion_fija_camara.z, 0.1f);
+					}
+					else if(ImGui::Button(fijar_camara_texto.c_str()))
+						index_vista_fija = index_actual;
+
 				ImGui::Unindent();
 			}
 			ImGui::Unindent();
-		}
-		
+		}		
 		ImGui::End();
 		
+		if(index_vista_fija != -1)
+			camara.cambiarPlanetaTarget(lista_planetas[index_vista_fija], fijar_planeta, posicion_fija_camara);
 
 		if(!pausar_simulacion)
 		{
@@ -456,7 +528,7 @@ int main(void)
 
 		//input
 		if(!io.WantCaptureKeyboard)
-			manageInput(camara, angulo_x, angulo_y);
+			camara.detectInput();
     }
 
 	rlImGuiShutdown();
