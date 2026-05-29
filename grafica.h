@@ -47,12 +47,15 @@ class cGrafica
 		unsigned int duracion_de_año_planeta;
 		float minimo_y;
 		float maximo_y;
+
+		//Para pausas
+		float dia_final_anterior;
 	public:
 
 		cGrafica(){ }
 		cGrafica(std::string nombre_grafica, std::string nombre_x, std::string nombre_y, std::string nombre_valor_inicial,float valor_inicial, unsigned int duracion_de_año_planeta)
 			:nombre_grafica(nombre_grafica), nombre_x(nombre_x), nombre_y(nombre_y), nombre_valor_inicial(nombre_valor_inicial), 
-			 valor_inicial(valor_inicial), duracion_de_año_planeta(duracion_de_año_planeta), minimo_y(valor_inicial - 1), maximo_y(valor_inicial + 1)
+			 valor_inicial(valor_inicial), duracion_de_año_planeta(duracion_de_año_planeta), minimo_y(valor_inicial - 1), maximo_y(valor_inicial + 1), dia_final_anterior(0.0f)
 		{
 			this->series.push_back(0);
 		}
@@ -114,8 +117,11 @@ class cGrafica
 				if(std::isnan(dia_final_grafica))
 					dia_final_grafica = lista_data[lista_data.size() - 2].x;
 
-				ImPlot::SetupAxisLimits(ImAxis_X1, dia_inicio_grafica, dia_final_grafica + 10, ImGuiCond_Always);
+				if(dia_final_grafica != dia_final_anterior)
+					ImPlot::SetupAxisLimits(ImAxis_X1, dia_inicio_grafica, dia_final_grafica + 10, ImGuiCond_Always);
+				
 				ImPlot::SetupAxisLimits(ImAxis_Y1, maximo_y, minimo_y, ImGuiCond_Once);
+				
 				//Dibujar la grafica
 				ImPlot::PlotLine(nombre_grafica.c_str(), &lista_data.front().x,&lista_data.front().y,lista_data.size(),{ImPlotProp_Stride, sizeof(Vector2)});
 
@@ -130,6 +136,8 @@ class cGrafica
 				if (!dias_donde_pasan_los_años.empty())
 					ImPlot::PlotInfLines(std::string("Vuelta completa alrededor del sol##Lineas_horizontal_año-"+nombre_grafica).c_str(), 
 										 &dias_donde_pasan_los_años.front(), dias_donde_pasan_los_años.size());
+
+				dia_final_anterior = dia_final_grafica;
 
 				ImPlot::EndPlot();
 			}

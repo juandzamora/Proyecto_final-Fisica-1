@@ -64,7 +64,9 @@ int main(void)
 	bool fijar_planeta = false;
 
 
-	int dia_a_parar;
+	int dia_a_parar = 0;
+
+	bool pausar_simulacion = false;
 
 	float tiempo_funcionando = 0.0f;
 	bool plotear_toda_velocidad = false;
@@ -84,30 +86,22 @@ int main(void)
 		ImGui::DragInt("Velocidad", &velocidad, 1, 0, 1000);
 		
 		std::string texto_pausa;
-		static int velocidad_antes_de_pausa;
-		if(velocidad <= 0)
+		
+		if(pausar_simulacion)
 			texto_pausa = "Despausar simulacion";
 		else
 			texto_pausa = "Pausar simulacion";
 
 		
 		if(ImGui::Button(texto_pausa.c_str()))
-		{
-			if(velocidad <= 0)
-				velocidad = 1;
-			else
-				velocidad = 0;
-		}
+			pausar_simulacion = !pausar_simulacion;
 
-		ImGui::TextWrapped("Dia actual: %.2f", (365.0f/2238.73f) * tiempo_funcionando);
-
+		ImGui::TextWrapped("Dia actual: %.2f dias", (365.0f/2238.73f) * tiempo_funcionando);
+		ImGui::TextWrapped("Periodo terrestre actual: %.2f peridodo", ((365.0f/2238.73f) * tiempo_funcionando)/365);
 		ImGui::InputInt("Dia a parar", &dia_a_parar, 0);
 
-		if(dia_a_parar <= (365.0f/2238.73f) * tiempo_funcionando && dia_a_parar > 0)
-		{
-			velocidad = 0;
-			dia_a_parar = 0;
-		}
+		if(dia_a_parar <= (365.0f/2238.73f) * tiempo_funcionando && dia_a_parar != 0)
+			pausar_simulacion = true;
 
 		std::string texto_plot_velocidad;
 		
@@ -357,17 +351,20 @@ int main(void)
 
 		if(index_vista_fija != -1)
 			camara.cambiarPlanetaTarget(lista_planetas[index_vista_fija], index_vista_fija, fijar_planeta);
-
-		for(int i = 0; i < velocidad; i++)
-			for(cPlaneta & planeta : lista_planetas)
-			{
-				float tiempo_vuelta_anterior = planeta.getTiempoVueltaAnterior();
+		
+		if(!pausar_simulacion)
+		{
+			for(int i = 0; i < velocidad; i++)
+				for(cPlaneta & planeta : lista_planetas)
+				{
+					float tiempo_vuelta_anterior = planeta.getTiempoVueltaAnterior();
 					
-				//if(planeta.completoUnPeriodo())
-					//std::cout << "\nPeriodo completo de " + planeta.getNombre() + " en " << planeta.getTiempoVueltaAnterior() - tiempo_vuelta_anterior;
-				tiempo_funcionando += delta_tiempo;
-				planeta.updatePosition(delta_tiempo);
-			}
+					//if(planeta.completoUnPeriodo())
+						//std::cout << "\nPeriodo completo de " + planeta.getNombre() + " en " << planeta.getTiempoVueltaAnterior() - tiempo_vuelta_anterior;
+					tiempo_funcionando += delta_tiempo;
+					planeta.updatePosition(delta_tiempo);
+				}
+		}
 
 		for(cPlaneta & planeta : lista_planetas)
 			DrawSphere(planeta.getPosicion(), planeta.getRadio(), planeta.getColor());
