@@ -63,7 +63,7 @@ class cPlaneta
 
 		//Variables de ayuda para Path de aqui para abajo:
 		std::vector<Vector3> path;
-		const float intervalo_de_guardado = 2.0f;
+		const float intervalo_de_guardado = 2.5f;
 		//Para guardar un intervalo para saber cuando se llegue a intervalo_de_guardado
 		float intervalo_tiempo;
 
@@ -88,6 +88,9 @@ class cPlaneta
 
 			if(intervalo_tiempo >= intervalo_de_guardado)
 			{
+				//Para reducir la cantidad de datos
+				llenarDatosGraficas();
+
 				float angulo = atan2(posicion.y, posicion.x);
 
 				this->intervalo_tiempo = 0.0f;
@@ -233,7 +236,6 @@ class cPlaneta
 			posicion.y = posicion.y + velocidad.y * dt;
 
 			modificarPath(dt);
-			llenarDatosGraficas();
 		}
 
 		bool completoUnPeriodo()
