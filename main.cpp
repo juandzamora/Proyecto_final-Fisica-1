@@ -167,7 +167,7 @@ int main(void)
 
 							planeta.verGraficoVelocidad();
 							
-							if(ImGui::Button(std::string("Guardar grafica velocidad##guardar_datos_velocidad_" + std::to_string(index_actual)).c_str()))
+							if(ImGui::Button(std::string("Guardar datos de velocidad##guardar_datos_velocidad_" + std::to_string(index_actual)).c_str()))
 								planeta.guardarGrafica(dat_velocidad);
 							
 							if(ImGui::Button(std::string("Iniciar grafica aceleracion##iniciar_datos_aceleracion_" + std::to_string(index_actual)).c_str()))
@@ -181,7 +181,7 @@ int main(void)
 
 							planeta.verGraficoAceleracion();
 
-							if(ImGui::Button(std::string("Guardar grafica velocidad##guardar_datos_aceleracion_" + std::to_string(index_actual)).c_str()))
+							if(ImGui::Button(std::string("Guardar datos de aceleracion##guardar_datos_aceleracion_" + std::to_string(index_actual)).c_str()))
 								planeta.guardarGrafica(dat_aceleracion);
 
 							if(ImGui::Button(std::string("Iniciar grafica energia cinetica##iniciar_datos_energia_cinetica_" + std::to_string(index_actual)).c_str()))
@@ -195,7 +195,7 @@ int main(void)
 
 							planeta.verGraficoEnergiaCinetica();
 
-							if(ImGui::Button(std::string("Guardar grafica energia cinetica##guardar_datos_energia_cinetica_" + std::to_string(index_actual)).c_str()))
+							if(ImGui::Button(std::string("Guardar datos de energia cinetica##guardar_datos_energia_cinetica_" + std::to_string(index_actual)).c_str()))
 								planeta.guardarGrafica(dat_energia_cinetica);
 						}
 						ImGui::Unindent();	

@@ -70,6 +70,9 @@ class cGrafica
 		void limpiarData()
 		{
 			lista_data.clear();
+			series.clear();
+			maximo_y = valor_inicial + 1;
+			minimo_y = valor_inicial - 1; 
 		}
 		//ImPlotSpec
 		std::vector<Vector2> obtenerData()
@@ -99,7 +102,7 @@ class cGrafica
 		{	
 			if(lista_data.size() < 3) 
 				return;
-			
+
 			if(ImPlot::BeginPlot(std::string(nombre_grafica).c_str()))
 			{
 				ImPlot::SetupAxis(ImAxis_X1, nombre_x.c_str());
@@ -136,6 +139,12 @@ class cGrafica
 		{
 			std::ofstream archivo_informacion(this->nombre_grafica + ".csv");
 
+			if(!archivo_informacion.is_open())
+			{
+				std::cerr << "No se pudo abrir el archivo: " << this->nombre_grafica << ".csv" << std::endl;
+				return; // salir limpiamente sin dejar nada colgado
+			}
+
 			std::vector<sVector2Int> rangos_reales;
 
 			int rango_max = 0;
@@ -151,7 +160,7 @@ class cGrafica
 					rango_max = rangos_reales.back().y;
 			}
 
-			std::string primera_linea;
+			std::string primera_linea = "Datos principales,";
 			for(int i = 0; i < rangos_reales.size(); i++)
 				primera_linea += "Tiempo serie " + std::to_string(i + 1) + "," + "Datos serie " + std::to_string(i + 1) + ",";
 
@@ -160,6 +169,15 @@ class cGrafica
 			for(int i = 0; i < rango_max; i++)
 			{
 				std::string linea;
+				if(i == 0)
+					linea = this->nombre_grafica;
+				if(i == 1)
+					linea = std::to_string(this->duracion_de_año_planeta);
+				if(i == 2)
+					linea = std::to_string(this->valor_inicial);
+
+				linea += ",";
+
 				for(const auto & rango : rangos_reales)
 				{
 					if(rango.y <= i)
@@ -171,11 +189,14 @@ class cGrafica
 					linea += std::to_string(lista_data[rango.x + i].x) + "," + std::to_string(lista_data[rango.x + i].y) + ",";
 				}
 
+				if(!linea.empty() && linea.back() == ',')
+					linea.pop_back();
+
 				linea += "\n";
 
 				archivo_informacion << linea;
 			}
-
+			archivo_informacion.flush();
 			archivo_informacion.close();
 		}
 };
@@ -183,12 +204,12 @@ class cGrafica
 //Controlador porque puede controlar si la grafica esta activa o no, importante a la hora de dibujarla.
 struct sControladorGrafico
 {
-	cGrafica grafica;
+	cGrafica * grafica;
 	eEstadoGrafica estado;
 
 	sControladorGrafico()
 	{
 		estado = vacia;
-		grafica = cGrafica();
+		grafica = nullptr;
 	}
 };

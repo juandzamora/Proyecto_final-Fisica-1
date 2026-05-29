@@ -155,13 +155,13 @@ class cPlaneta
 			float dia = (365.0f/2238.73f) * tiempo_orbitando;
 			float magnitud_velocidad = sqrtf(velocidad.x*velocidad.x + velocidad.y*velocidad.y); 
 			if(grafica_velocidad.estado == activa)
-				grafica_velocidad.grafica.añadirData({dia, magnitud_velocidad});
+				grafica_velocidad.grafica->añadirData({dia, magnitud_velocidad});
 
 			if(grafica_aceleracion.estado == activa)
-				grafica_aceleracion.grafica.añadirData({dia, sqrtf(aceleracion.x*aceleracion.x + aceleracion.y*aceleracion.y)});
+				grafica_aceleracion.grafica->añadirData({dia, sqrtf(aceleracion.x*aceleracion.x + aceleracion.y*aceleracion.y)});
 
 			if(grafica_energia_cinetica.estado == activa)
-				grafica_energia_cinetica.grafica.añadirData({dia, (masa * magnitud_velocidad * magnitud_velocidad)/2.0f});
+				grafica_energia_cinetica.grafica->añadirData({dia, (masa * magnitud_velocidad * magnitud_velocidad)/2.0f});
 		}
 
 	public:
@@ -258,7 +258,8 @@ class cPlaneta
 				if(grafica_velocidad.estado == activa)
 					return;
 				grafica_velocidad.estado = activa;
-				grafica_velocidad.grafica = cGrafica("Velocidad de " + nombre_planeta, std::string("Dias terrestres"), std::string("Magnitud de la velocidad (km/s)"), 
+				delete grafica_velocidad.grafica;
+				grafica_velocidad.grafica = new cGrafica("Velocidad de " + nombre_planeta, std::string("Dias terrestres"), std::string("Magnitud de la velocidad (km/s)"), 
 											std::string("Valor inicial de la magnitud de la velocidad"), valor_inicial_velocidad, duracion_año_planeta);
 				return;
 			}
@@ -269,16 +270,16 @@ class cPlaneta
 					grafica_velocidad.estado = activa;
 					return;
 				}
-				grafica_velocidad.grafica.terminarSerie();
+				grafica_velocidad.grafica->terminarSerie();
 				grafica_velocidad.estado = pausada;
 			}
 			else if(tipo_de_dato == dat_velocidad && nuevo_estado == vacia)
 			{
 				if(grafica_velocidad.estado == vacia)
 					return;
-
+				delete grafica_velocidad.grafica;
+				grafica_velocidad.grafica = nullptr;
 				grafica_velocidad.estado = vacia;
-				grafica_velocidad.grafica.limpiarData();
 				return;
 			}
 
@@ -288,7 +289,8 @@ class cPlaneta
 					return;
 
 				grafica_aceleracion.estado = activa;
-				grafica_aceleracion.grafica = cGrafica("Aceleracion de " + nombre_planeta, std::string("Dias terrestres"), std::string("Magnitud de la aceleracion (km/s^2)"), 
+				delete grafica_aceleracion.grafica;
+				grafica_aceleracion.grafica = new cGrafica("Aceleracion de " + nombre_planeta, std::string("Dias terrestres"), std::string("Magnitud de la aceleracion (km/s^2)"), 
 											std::string("Valor inicial de la magnitud de la aceleracion"), valor_inicial_aceleracion, duracion_año_planeta);
 				return;
 			}
@@ -300,7 +302,7 @@ class cPlaneta
 					return;
 				}
 
-				grafica_aceleracion.grafica.terminarSerie();
+				grafica_aceleracion.grafica->terminarSerie();
 				grafica_aceleracion.estado = pausada;
 			}
 			else if(tipo_de_dato == dat_aceleracion && nuevo_estado == vacia)
@@ -308,8 +310,9 @@ class cPlaneta
 				if(grafica_aceleracion.estado == vacia)
 					return;
 
+				delete grafica_aceleracion.grafica;
+				grafica_aceleracion.grafica = nullptr;
 				grafica_aceleracion.estado = vacia;
-				grafica_aceleracion.grafica.limpiarData();
 				return;
 			}
 
@@ -320,7 +323,8 @@ class cPlaneta
 					return;
 
 				grafica_energia_cinetica.estado = activa;
-				grafica_energia_cinetica.grafica = cGrafica("Energia cinetica de " + nombre_planeta, std::string("Dias terrestres"), std::string("Energia cinetica ((kg*km^2)/s^2)"), 
+				delete grafica_energia_cinetica.grafica;
+				grafica_energia_cinetica.grafica = new cGrafica("Energia cinetica de " + nombre_planeta, std::string("Dias terrestres"), std::string("Energia cinetica ((kg*km^2)/s^2)"), 
 											std::string("Valor inicial de la energia cinetica"), valor_inicial_energia_cinetica, duracion_año_planeta);
 				return;
 			}
@@ -331,7 +335,7 @@ class cPlaneta
 					grafica_energia_cinetica.estado = activa;
 					return;
 				}
-				grafica_energia_cinetica.grafica.terminarSerie();
+				grafica_energia_cinetica.grafica->terminarSerie();
 				grafica_energia_cinetica.estado = pausada;
 			}
 			else if(tipo_de_dato == dat_energia_cinetica && nuevo_estado == vacia)
@@ -340,7 +344,8 @@ class cPlaneta
 					return;
 
 				grafica_energia_cinetica.estado = vacia;
-				grafica_energia_cinetica.grafica.limpiarData();
+				delete grafica_energia_cinetica.grafica;
+				grafica_energia_cinetica.grafica = nullptr;
 				return;
 			}
 
@@ -348,20 +353,20 @@ class cPlaneta
 		
 		void verGraficoVelocidad()
 		{
-			if((grafica_velocidad.estado == activa || grafica_velocidad.estado == pausada) && !grafica_velocidad.grafica.obtenerData().empty())
-				grafica_velocidad.grafica.visualizarGrafica();
+			if((grafica_velocidad.estado == activa || grafica_velocidad.estado == pausada) && !grafica_velocidad.grafica->obtenerData().empty())
+				grafica_velocidad.grafica->visualizarGrafica();
 		}
 
 		void verGraficoAceleracion()
 		{
-			if((grafica_aceleracion.estado == activa || grafica_aceleracion.estado == pausada) && !grafica_aceleracion.grafica.obtenerData().empty())
-				grafica_aceleracion.grafica.visualizarGrafica();
+			if((grafica_aceleracion.estado == activa || grafica_aceleracion.estado == pausada) && !grafica_aceleracion.grafica->obtenerData().empty())
+				grafica_aceleracion.grafica->visualizarGrafica();
 		}
 
 		void verGraficoEnergiaCinetica()
 		{
-			if((grafica_energia_cinetica.estado == activa || grafica_energia_cinetica.estado == pausada) && !grafica_energia_cinetica.grafica.obtenerData().empty())
-				grafica_energia_cinetica.grafica.visualizarGrafica();
+			if((grafica_energia_cinetica.estado == activa || grafica_energia_cinetica.estado == pausada) && !grafica_energia_cinetica.grafica->obtenerData().empty())
+				grafica_energia_cinetica.grafica->visualizarGrafica();
 		}
 
 		eEstadoGrafica getEstadoGrafica(eRecoleccionDatosPlaneta tipo_de_dato)
@@ -379,13 +384,13 @@ class cPlaneta
 		void guardarGrafica(eRecoleccionDatosPlaneta tipo_de_dato)
 		{
 			if(tipo_de_dato == dat_velocidad && grafica_velocidad.estado == pausada)
-				return grafica_velocidad.grafica.guardarInformacion();
+				return grafica_velocidad.grafica->guardarInformacion();
 
 			if(tipo_de_dato == dat_aceleracion && grafica_aceleracion.estado == pausada)
-				return grafica_aceleracion.grafica.guardarInformacion();
+				return grafica_aceleracion.grafica->guardarInformacion();
 
 			if(tipo_de_dato == dat_energia_cinetica && grafica_energia_cinetica.estado == pausada)
-				return grafica_energia_cinetica.grafica.guardarInformacion();
+				return grafica_energia_cinetica.grafica->guardarInformacion();
 		}
 
 		bool getSol()
