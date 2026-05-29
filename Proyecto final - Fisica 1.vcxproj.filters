@@ -39,13 +39,128 @@
     <ClCompile Include="Raylib_utils\raylib_utils.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="Librerias\Archivos fuentes\implot.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Librerias\Archivos fuentes\implot_demo.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Librerias\Archivos fuentes\implot_items.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Raylib_utils\raylib_utils.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="Librerias\Includes\fonts\FA6FreeSolidFontData.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\fonts\IconsFontAwesome6.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\enum.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IAutoFilterT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IBookT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IConditionalFormatT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IConditionalFormattingT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\ICorePropertiesT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IFilterColumnT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IFontT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IFormatT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IFormControlT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\imconfig.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\imgui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\imgui_impl_raylib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\imgui_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\implot.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\implot_internal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\imstb_rectpack.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\imstb_textedit.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\imstb_truetype.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\IRichStringT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\ISheetT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\ITableT.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\libxl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\raylib.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\raymath.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\rlgl.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\rlImGui.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\rlImGuiColors.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Librerias\Includes\setup.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="camara.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="grafica.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="planeta.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="Librerias\Libs\raylib.lib" />
+    <Library Include="Librerias\Libs\raylibdll.lib" />
   </ItemGroup>
 </Project>

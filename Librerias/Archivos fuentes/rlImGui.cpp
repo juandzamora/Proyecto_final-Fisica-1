@@ -23,21 +23,21 @@
 *     3. This notice may not be removed or altered from any source distribution.
 *
 **********************************************************************************************/
-#include <rlImGui.h>
+#include "rlImGui.h"
 
-#include <imgui_impl_raylib.h>
+#include "imgui_impl_raylib.h"
 
-#include <raylib.h>
-#include <rlgl.h>
+#include "raylib.h"
+#include "rlgl.h"
 
-#include <imgui.h>
+#include "imgui.h"
 
 #include <math.h>
 #include <limits>
 #include <cstdint>
 
 #ifndef NO_FONT_AWESOME
-#include <fonts/FA6FreeSolidFontData.h>
+#include "fonts/FA6FreeSolidFontData.h"
 #endif
 
 static ImGuiMouseCursor CurrentMouseCursor = ImGuiMouseCursor_COUNT;

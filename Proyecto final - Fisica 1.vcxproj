@@ -136,15 +136,56 @@
     <ClCompile Include="Librerias\Archivos fuentes\imgui_draw.cpp" />
     <ClCompile Include="Librerias\Archivos fuentes\imgui_tables.cpp" />
     <ClCompile Include="Librerias\Archivos fuentes\imgui_widgets.cpp" />
+    <ClCompile Include="Librerias\Archivos fuentes\implot.cpp" />
+    <ClCompile Include="Librerias\Archivos fuentes\implot_demo.cpp" />
+    <ClCompile Include="Librerias\Archivos fuentes\implot_items.cpp" />
     <ClCompile Include="Librerias\Archivos fuentes\rlImGui.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="Raylib_utils\raylib_utils.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="camara.h" />
+    <ClInclude Include="grafica.h" />
+    <ClInclude Include="Librerias\Includes\enum.h" />
+    <ClInclude Include="Librerias\Includes\fonts\FA6FreeSolidFontData.h" />
+    <ClInclude Include="Librerias\Includes\fonts\IconsFontAwesome6.h" />
+    <ClInclude Include="Librerias\Includes\IAutoFilterT.h" />
+    <ClInclude Include="Librerias\Includes\IBookT.h" />
+    <ClInclude Include="Librerias\Includes\IConditionalFormatT.h" />
+    <ClInclude Include="Librerias\Includes\IConditionalFormattingT.h" />
+    <ClInclude Include="Librerias\Includes\ICorePropertiesT.h" />
+    <ClInclude Include="Librerias\Includes\IFilterColumnT.h" />
+    <ClInclude Include="Librerias\Includes\IFontT.h" />
+    <ClInclude Include="Librerias\Includes\IFormatT.h" />
+    <ClInclude Include="Librerias\Includes\IFormControlT.h" />
+    <ClInclude Include="Librerias\Includes\imconfig.h" />
+    <ClInclude Include="Librerias\Includes\imgui.h" />
+    <ClInclude Include="Librerias\Includes\imgui_impl_raylib.h" />
+    <ClInclude Include="Librerias\Includes\imgui_internal.h" />
+    <ClInclude Include="Librerias\Includes\implot.h" />
+    <ClInclude Include="Librerias\Includes\implot_internal.h" />
+    <ClInclude Include="Librerias\Includes\imstb_rectpack.h" />
+    <ClInclude Include="Librerias\Includes\imstb_textedit.h" />
+    <ClInclude Include="Librerias\Includes\imstb_truetype.h" />
+    <ClInclude Include="Librerias\Includes\IRichStringT.h" />
+    <ClInclude Include="Librerias\Includes\ISheetT.h" />
+    <ClInclude Include="Librerias\Includes\ITableT.h" />
+    <ClInclude Include="Librerias\Includes\libxl.h" />
+    <ClInclude Include="Librerias\Includes\raylib.h" />
+    <ClInclude Include="Librerias\Includes\raymath.h" />
+    <ClInclude Include="Librerias\Includes\rlgl.h" />
+    <ClInclude Include="Librerias\Includes\rlImGui.h" />
+    <ClInclude Include="Librerias\Includes\rlImGuiColors.h" />
+    <ClInclude Include="Librerias\Includes\setup.h" />
+    <ClInclude Include="planeta.h" />
     <ClInclude Include="Raylib_utils\raylib_utils.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="README.md" />
+  </ItemGroup>
+  <ItemGroup>
+    <Library Include="Librerias\Libs\raylib.lib" />
+    <Library Include="Librerias\Libs\raylibdll.lib" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

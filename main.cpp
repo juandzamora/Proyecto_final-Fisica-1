@@ -15,419 +15,11 @@ using std::sqrt;
 #include <rlImGuiColors.h>
 #include <imgui.h>
 
-static float z_de_todo_el_proyecto = 0.0f;
+#include <implot.h>
 
-class cPlaneta
-{
-	private:
-		//Caracteristicas del plantea
-		std::string nombre_planeta;
+#include "camara.h"
+#include "planeta.h"
 
-		Vector2 velocidad;
-		Vector2 aceleracion;
-
-		Vector2 posicion;
-		//Para hacer que la camara se mueva con el planeta
-		Vector2 posicion_anterior;
-
-		float tiempo_orbitando;
-
-		//Caracteristicas del planeta para renderizarlo
-		Color color;
-		float radio;
-
-		//Variables de ayuda para Path de aqui para abajo:
-		std::vector<Vector3> path;
-		const float intervalo_de_guardado = 2.0f;
-		//Para guardar un intervalo para saber cuando se llegue a intervalo_de_guardado
-		float intervalo_tiempo;
-
-		bool es_sol;
-
-		//Para reescribir path cuando se haya completado una vuelta
-		size_t index_actual;
-
-		//Guardado del angulo previo 
-		float angulo_anterior;
-
-		//Identifican si ya completo su primera vuelta y si ya dio la primera media vuelta desde su origen (esta ultima se reinicia cada vez que pasa aprox por el origen)
-		bool completo_una_vuelta;
-		bool dio_media_vuelta;
-
-		void modificarPath(float dt)
-		{
-			if(es_sol)
-				return;
-
-			this->intervalo_tiempo += dt;
-
-			if(intervalo_tiempo >= intervalo_de_guardado)
-			{
-				float angulo = atan2(posicion.y, posicion.x);
-
-				this->intervalo_tiempo = 0.0f;
-
-				if(angulo > 0 && angulo_anterior < 0)
-				{
-					completo_una_vuelta = true;
-					dio_media_vuelta = false;
-
-					index_actual = 0;
-				}
-
-				if(completo_una_vuelta)
-				{
-					if(index_actual < path.size())
-					{
-						path[index_actual] = getPosicion();
-
-						index_actual++;
-					}
-				}
-				else
-					path.push_back(getPosicion());
-
-				//Dio una media vuelta
-				if(angulo < 0 && angulo_anterior > 0)
-				{
-					dio_media_vuelta = true;
-				}
-
-				angulo_anterior = angulo;
-			}
-		}
-
-		void actualizarVelocidad(double dt)
-		{
-			velocidad.x = velocidad.x + aceleracion.x * (dt/2.0);
-			velocidad.y = velocidad.y + aceleracion.y * (dt/2.0);
-		}
-
-		void actualizarAceleracion()
-		{
-			//Esto se veria como (reemplazar x o y dependiendo de la aceleración a calcular)
-			/*
-			* ax = aceleración en x
-						
-						        x
-				ax = -1*-------------------
-					     (x^2 + y^2)^(3/2)
-			*/
-			float denominador_aceleracion = pow(pow(posicion.x, 2) + pow(posicion.y, 2), 3.0 / 2.0);
-
-			if(denominador_aceleracion == 0)
-				denominador_aceleracion = 1;
-
-			aceleracion.x = -1*(posicion.x/denominador_aceleracion);
-			aceleracion.y = -1*(posicion.y/denominador_aceleracion);
-		}
-
-
-	public:
-		cPlaneta(std::string nombre_planeta, Vector2 pos_inicial, float radio, Color color, Vector2 velocidad_inicial = {0, 0},bool ajustar_velocidad = true, bool es_sol = false)
-		{
-			const float factor_de_escalado_radio = 1.0f/2400.0f;
-			const float factor_de_escalado_distancia = 1.0f/2'500'000.0f;
-
-			this->nombre_planeta = nombre_planeta;
-
-			//Tiempo que a "pasado" (o simulado) desde que empezo la simulación. Se actualiza con dt
-			this->tiempo_orbitando = 0;
-
-
-			//inicializacion variables necesarias para Path
-			{
-				//Para saber si es el sol (y no dibujarle path)
-				this->es_sol = es_sol;
-
-				this->completo_una_vuelta = false;
-				this->dio_media_vuelta = false;
-
-				this->angulo_anterior = 0;
-
-				//Para que esto funcione, dt tiene que ser constante
-				this->intervalo_tiempo = 0;
-			}
-
-			pos_inicial.x *= factor_de_escalado_distancia;
-
-			if(ajustar_velocidad)
-			{
-				float v_orbital = sqrt(1.0f / pos_inicial.x);
-				this->velocidad = {0, v_orbital * 0.5f};
-			}
-			else
-				this->velocidad = velocidad_inicial;
-
-			this->radio = radio * factor_de_escalado_radio;
-
-			this->posicion = pos_inicial;
-
-			this->color = color;
-		}
-
-		//dt = delta de tiempo, tiempo que paso entre el anterior calculo (o llamado a esta función) a este. Es simulado, no tiene que ser realista.
-		void updatePosition(double dt)
-		{
-			tiempo_orbitando += dt;
-			actualizarAceleracion();
-			actualizarVelocidad(dt);
-			//Actualizar la posición
-			posicion.x = posicion.x + velocidad.x * dt;
-			posicion.y = posicion.y + velocidad.y * dt;
-
-			modificarPath(dt);
-		}
-
-		Vector2 getAceleracion()
-		{
-			return aceleracion;
-		}
-
-		Vector2 getVelocidad()
-		{
-			return velocidad;
-		}
-
-		float getRadio()
-		{
-			return radio;
-		}
-
-		Color getColor()
-		{
-			return color;
-		}
-
-		Vector3 getPosicion()
-		{
-			return {posicion.x, z_de_todo_el_proyecto,  posicion.y};
-		}
-
-		Vector3 getPosicionAnterior()
-		{
-			return {posicion_anterior.x, z_de_todo_el_proyecto,  posicion_anterior.y};
-		}
-
-		std::vector<Vector3> & getPath()
-		{
-			return path;
-		}
-
-		std::string getNombre()
-		{
-			return nombre_planeta;
-		}
-
-		bool yaDioUnaVuelta()
-		{
-			return completo_una_vuelta;
-		}
-
-		size_t getTamañoPath()
-		{
-			return path.size();
-		}
-};
-
-class cCamara3DCustom
-{
-	private:
-		Camera3D camara;
-
-		//Los angulo en X e Y de la camara
-		float angulo_y;
-		float angulo_x;
-
-		const float epsilon = 0.01f;
-
-		bool mantener_fija_en_planeta;
-		int id_planeta_fijo;
-		float factor_zoom_cuando_fijo;
-		//ultimo_cambio_zoom guarda el valor del ultimo cambio a zoom para restarselo a factor_zoom_cuando_fijo en caso de que la hipotenusa se vuelva 0
-		float ultimo_cambio_zoom;
-		float factor_anguloX_cuando_fijo;
-		float factor_anguloY_cuando_fijo;
-
-		inline float getHipotenusa()
-		{
-			return sqrt(pow(camara.position.x - camara.target.x, 2) + pow(camara.position.y - camara.target.y, 2) + pow(camara.position.z - camara.target.z, 2));
-		}
-
-		inline void actualizarPosicion(const float & hipotenusa)
-		{	
-			camara.position = {
-				(cos(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.x, 
-				(cos(angulo_y)*hipotenusa) + camara.target.y,
-				(sin(angulo_x)*sin(angulo_y)*hipotenusa) + camara.target.z
-			};
-		}
-
-		void modificarZoom(float factor_de_zoom)
-		{
-			float hipotenusa = getHipotenusa() + factor_de_zoom;
-
-			if(hipotenusa + epsilon > 0)
-				actualizarPosicion(hipotenusa);
-		}
-
-		void moverseEnElEje()
-		{
-			Vector2 mouse_delta = GetMouseDelta();
-
-			const float sensibilidadX = 0.0075;
-			const float sensibilidadY = 0.0025;
-
-			float cambio_en_angulo_x = mouse_delta.x * sensibilidadX;
-			float cambio_en_angulo_y = mouse_delta.y * sensibilidadY;
-
-			if(mantener_fija_en_planeta)
-			{
-				factor_anguloX_cuando_fijo += cambio_en_angulo_x;
-				factor_anguloY_cuando_fijo += cambio_en_angulo_y;
-				return;
-			}
-
-			angulo_x += cambio_en_angulo_x;
-			angulo_y = Clamp(angulo_y + cambio_en_angulo_y, 0 + epsilon, PI - epsilon);
-
-
-			actualizarPosicion(getHipotenusa());
-		}
-
-		void fijarFirmeAPlaneta(Vector3 posicion_planeta, Vector3 posicion_fija, float radio_planeta)
-		{
-			camara.target = posicion_planeta;
-
-			camara.position = posicion_fija;
-
-			float hipotenusa = sqrt(pow(posicion_fija.x, 2) + pow(posicion_fija.y, 2) + pow(posicion_fija.z, 2)) + this->factor_zoom_cuando_fijo;
-
-			if(hipotenusa < radio_planeta * 2)
-			{
-				hipotenusa -= this->ultimo_cambio_zoom;
-
-				this->factor_zoom_cuando_fijo -= this->ultimo_cambio_zoom;
-				this->ultimo_cambio_zoom = 0.0f;
-			}
-
-			
-			//Movimiento con mouse cuando se esta firme a un planeta
-			angulo_y = acos((posicion_fija.y - camara.target.y)/hipotenusa);
-			angulo_x = atan2(posicion_fija.z - camara.target.z, posicion_fija.x - camara.target.x) + factor_anguloX_cuando_fijo;
-
-			angulo_y = Clamp(angulo_y + factor_anguloY_cuando_fijo, 0 + epsilon, PI - epsilon);
-
-			actualizarPosicion(hipotenusa);
-		}
-
-	public:
-		
-		cCamara3DCustom(Vector3 posicion_inicial, Vector3 target_inicial, float fovy = 45.0f)
-		{
-			camara = {0};
-			
-			camara.position = posicion_inicial;
-			camara.target = target_inicial;
-
-			camara.fovy = fovy;
-			camara.up = { 0.0f, 1.0f, 0.0f }; 
-			camara.projection = CAMERA_PERSPECTIVE;
-
-			float hipotenusa = getHipotenusa();
-
-			angulo_y = acos(camara.position.y/hipotenusa);
-			angulo_x = atan2(camara.position.z - camara.target.z, camara.position.x - camara.target.x);
-
-			//Variables para fijar en planeta
-			this->mantener_fija_en_planeta = false;
-			this->id_planeta_fijo = -1;
-			this->factor_zoom_cuando_fijo = 0.0f;
-			this->ultimo_cambio_zoom = 0.0f;
-			this->factor_anguloX_cuando_fijo = 0.0f;
-			this->factor_anguloY_cuando_fijo = 0.0f;
-		}
-
-		void detectInput()
-		{
-			if(IsMouseButtonDown(MOUSE_BUTTON_LEFT))
-				moverseEnElEje();
-
-			float cambio = 1.5f;
-			if(IsKeyDown(KEY_LEFT_SHIFT))
-				cambio = 1.0f;
-			if(IsKeyDown(KEY_LEFT_CONTROL))
-				cambio = 2.0f;
-
-			if(mantener_fija_en_planeta)
-			{
-				if(IsKeyDown(KEY_W))
-				{
-					this->factor_zoom_cuando_fijo += cambio * -1;
-					this->ultimo_cambio_zoom = cambio * -1;
-				}
-				
-				if(IsKeyDown(KEY_S))
-				{
-					this->factor_zoom_cuando_fijo += cambio;
-					this->ultimo_cambio_zoom = cambio;
-				}
-				return;
-			}
-
-			if(IsKeyDown(KEY_W))
-				modificarZoom(-1*cambio);
-
-			if(IsKeyDown(KEY_S))
-				modificarZoom(cambio);
-		}
-
-		Camera3D & getCamara()
-		{
-			return camara;
-		}
-		
-		//El id tiene que ser positivo
-		void cambiarPlanetaTarget(cPlaneta & planeta, int id_planeta, bool mantener_fija_en_planeta)
-		{
-			if(id_planeta < 0)
-				return;
-
-			if(mantener_fija_en_planeta)
-			{
-				if(this->id_planeta_fijo != id_planeta)
-				{
-					this->factor_zoom_cuando_fijo = 0.0f;
-					this->ultimo_cambio_zoom = 0.0f;
-					this->factor_anguloX_cuando_fijo = 0.0f;
-					this->factor_anguloY_cuando_fijo = 0.0f;
-					this->id_planeta_fijo = id_planeta;
-				}
-
-				float radio_planeta = planeta.getRadio();
-
-				float posicion_fija_coordenadas = radio_planeta/0.5f;
-
-				Vector3 posicion_fija =  {posicion_fija_coordenadas, posicion_fija_coordenadas, posicion_fija_coordenadas};
-
-				fijarFirmeAPlaneta(planeta.getPosicion(), posicion_fija, radio_planeta);
-				this->mantener_fija_en_planeta = true;
-
-				return;
-			}
-
-			this->mantener_fija_en_planeta = false;
-
-			camara.target = planeta.getPosicion();
-
-			float hipotenusa = getHipotenusa();
-
-			angulo_y = acos(camara.position.y/hipotenusa);
-			angulo_x = atan2(camara.position.z - camara.target.z, camara.position.x - camara.target.x);
-
-			actualizarPosicion(hipotenusa);
-		}
-};
 
 int main(void)
 {
@@ -436,9 +28,10 @@ int main(void)
 
 	SetConfigFlags(FLAG_WINDOW_RESIZABLE);
     InitWindow(screenWidth, screenHeight, "Proyecto final - Fisica 1");
+	MaximizeWindow();
 
 	cCamara3DCustom camara({40.0f, 40.0f, 40.0f}, {0.0f, 0.0f, 0.0f});
-
+	
 	const int max_fps = 144;
 
     SetTargetFPS(max_fps);
@@ -446,29 +39,29 @@ int main(void)
 	//rlImGui setup
 	rlImGuiSetup(true); 
 	ImGuiIO& io = ImGui::GetIO();
-	
-	//Datos de https://planetario.buenosaires.gob.ar/sites/default/files/2018-09/Tablas-%20El%20sistema%20solar%20en%20numeros-docentes.pdf y https://science.nasa.gov/resource/solar-system-sizes/. Todos los datos estan en sus km reales, excepto el sol
+	ImPlot::CreateContext();
+
+	//Datos de https://planetario.buenosaires.gob.ar/sites/default/files/2018-09/Tablas-%20El%20sistema%20solar%20en%20numeros-docentes.pdf, https://science.nasa.gov/resource/solar-system-sizes/. 
+	// https://spaceplace.nasa.gov/planets-weight/sp/ y Todos los datos estan en sus km reales, excepto el sol
 	std::vector<cPlaneta> lista_planetas = {
-		cPlaneta("Sol", {0, 0}, 15000.0f, ORANGE, {0, 0}, false, true),
-		cPlaneta("Mercurio", {57909175.0f, 0}, 2440, LIGHTGRAY),
-		cPlaneta("Venus", {108208930.0f, 0}, 6052, BEIGE),			
-		cPlaneta("Tierra", {149597890.0f, 0}, 6371, BLUE),
-		cPlaneta("Marte", {227936640.0f , 0}, 3390, RED),
-		cPlaneta("Jupiter", {778412020.0f, 0}, 69911, ORANGE),
-		cPlaneta("Saturno", {1426725400.0f, 0}, 58232, GOLD),
-		cPlaneta("Urano", { 2870972200.0f, 0}, 25362, SKYBLUE),
-		cPlaneta("Neptuno", {4498252900.0f, 0}, 24622, DARKBLUE)
+		cPlaneta("Sol", 0, 0, 0, 15000.0f, ORANGE, {0, 0}, false, true),
+		cPlaneta("Mercurio", 57909175.0f,  0.0553f, 88, 2440, LIGHTGRAY),
+		cPlaneta("Venus", 108208930.0f, 0.815f, 225, 6052, BEIGE),			
+		cPlaneta("Tierra", 149597890.0f, 1.0f, 365, 6371, BLUE),
+		cPlaneta("Marte", 227936640.0f, 0.107f, 687, 3390, RED),
+		cPlaneta("Jupiter", 778412020.0f, 318.0f, 4333, 69911, ORANGE),
+		cPlaneta("Saturno", 1426725400.0f, 95.2f, 10759, 58232, GOLD),
+		cPlaneta("Urano", 2870972200.0f, 14.5f, 30687, 25362, SKYBLUE),
+		cPlaneta("Neptuno", 4498252900.0f, 17.1f, 60190, 24622, DARKBLUE)
 	};
 
 	//Variables de la simulación
 	const float delta_tiempo = 0.1;
-	bool pausar_simulacion = false;
 	int velocidad = 1;
 
 	//Size t que recive negativos (no es como que size_t no lo haga, pero aja, por si acaso. size_t es unsigned)
 	long long index_vista_fija = -1;
 	bool fijar_planeta = false;
-
     while (!WindowShouldClose())
 	{	
 		BeginDrawing();
@@ -482,75 +75,151 @@ int main(void)
 		ImGui::TextWrapped("Configuracion general");
 		ImGui::DragInt("Velocidad", &velocidad, 1, 0, 1000);
 
+		
+		
 		static std::string texto_pausa;
-		if(pausar_simulacion)
+		static int velocidad_antes_de_pausa;
+		if(velocidad <= 0)
 			texto_pausa = "Despausar simulacion";
 		else
 			texto_pausa = "Pausar simulacion";
 
+
 		if(ImGui::Button(texto_pausa.c_str()))
-			pausar_simulacion = !pausar_simulacion;
-		//TODO
-		if(!ImGui::Button("Cargar de archivo (proximamente)"));
+		{
+			if(velocidad <= 0)
+				velocidad = 1;
+			else
+				velocidad = 0;
+		}
 
 		//Lista planetas
 		if(ImGui::CollapsingHeader("Ver lista de planetas"))
 		{
 			long long index_actual = -1;
-			ImGui::Indent();
 			for(cPlaneta & planeta : lista_planetas)
 			{
-				index_actual++;
-				if (!ImGui::CollapsingHeader(planeta.getNombre().c_str()))
-					continue;
-
-				Vector3 posicion = planeta.getPosicion();
-				Vector2 velocidad = planeta.getVelocidad();
-				Vector2 aceleracion = planeta.getAceleracion();
 				ImGui::Indent();
-					ImGui::Text("Posicion del planeta: ");
-					ImGui::SameLine();
-					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", posicion.x, posicion.z);
-
-					ImGui::Text("Velocidad del planeta: ");
-					ImGui::SameLine();
-					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", velocidad.x, velocidad.y);
-					
-					ImGui::Text("Aceleracion del planeta: ");
-					ImGui::SameLine();
-					ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f, y: %.4f", aceleracion.x, aceleracion.y);
-
-
-					std::string fijar_camara_texto = "Apuntar camara al planeta##" + std::to_string(index_actual);
-
-					if(index_vista_fija == index_actual)
+					index_actual++;
+					if(!ImGui::CollapsingHeader(planeta.getNombre().c_str()))
 					{
-						ImGui::BeginDisabled(true);
-						ImGui::Button(fijar_camara_texto.c_str());
-						ImGui::EndDisabled();
-						ImGui::SameLine();
-						ImGui::Checkbox("Fijarse a planeta", &fijar_planeta);
+						ImGui::Unindent();
+						continue;
 					}
-					else if(ImGui::Button(fijar_camara_texto.c_str()))
-						index_vista_fija = index_actual;
 
+					Vector3 posicion = planeta.getPosicion();
+					Vector2 velocidad = planeta.getVelocidad();
+					Vector2 aceleracion = planeta.getAceleracion();
+					ImGui::Indent();
+
+						ImGui::Text("Posicion del planeta: ");
+						ImGui::SameLine();
+						ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f km, y: %.4f km", posicion.x, posicion.z);
+
+						ImGui::Text("Velocidad del planeta: ");
+						ImGui::SameLine();
+						ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.4f km/s, y: %.4f km/s", velocidad.x, velocidad.y);
+	
+						ImGui::Text("Aceleracion del planeta: ");
+						ImGui::SameLine();
+						ImGui::TextColored(rlImGuiColors::Convert(BLUE), " x: %.6f km/(s^2), y: %.6f km/(s^2)", aceleracion.x, aceleracion.y);
+
+						std::string fijar_camara_texto = "Apuntar camara al planeta##Apuntar_camara_" + std::to_string(index_actual);
+
+						if(index_vista_fija == index_actual)
+						{
+							ImGui::BeginDisabled(true);
+							ImGui::Button(fijar_camara_texto.c_str());
+							ImGui::EndDisabled();
+							ImGui::SameLine();
+							ImGui::Checkbox("Fijarse a planeta", &fijar_planeta);
+						}
+						else if(ImGui::Button(fijar_camara_texto.c_str()))
+							index_vista_fija = index_actual;
+
+
+						std::string registrar_datos = "Registrar datos##Registar_datos_" + std::to_string(index_actual);
+						
+						if(planeta.getSol())
+						{
+							ImGui::Unindent();
+							ImGui::Unindent();
+							continue;
+						}
+
+						if(!ImGui::CollapsingHeader(registrar_datos.c_str()))
+						{	
+							ImGui::Unindent();
+							ImGui::Unindent();
+							continue;
+						}
+						ImGui::Indent();
+						//Botones de ayuda para graficas
+						{
+							if(ImGui::Button(std::string("Iniciar grafica velocidad##iniciar_datos_velocidad_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_velocidad, activa);
+							ImGui::SameLine();
+							if(ImGui::Button(std::string("Pausar grafica velocidad##pausa_datos_velocidad_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_velocidad, pausada);
+							ImGui::SameLine();
+							if(ImGui::Button(std::string("Borrar grafica velocidad##eliminar_datos_velocidad_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_velocidad, vacia);
+
+							planeta.verGraficoVelocidad();
+							
+							if(ImGui::Button(std::string("Guardar grafica velocidad##guardar_datos_velocidad_" + std::to_string(index_actual)).c_str()))
+								planeta.guardarGrafica(dat_velocidad);
+							
+							if(ImGui::Button(std::string("Iniciar grafica aceleracion##iniciar_datos_aceleracion_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_aceleracion, activa);
+							ImGui::SameLine();
+							if(ImGui::Button(std::string("Pausar grafica aceleracion##pausa_datos_aceleracion_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_aceleracion, pausada);
+							ImGui::SameLine();
+							if(ImGui::Button(std::string("Borrar grafica aceleracion##eliminar_datos_aceleracion_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_aceleracion, vacia);
+
+							planeta.verGraficoAceleracion();
+
+							if(ImGui::Button(std::string("Guardar grafica velocidad##guardar_datos_aceleracion_" + std::to_string(index_actual)).c_str()))
+								planeta.guardarGrafica(dat_aceleracion);
+
+							if(ImGui::Button(std::string("Iniciar grafica energia cinetica##iniciar_datos_energia_cinetica_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_energia_cinetica, activa);
+							ImGui::SameLine();
+							if(ImGui::Button(std::string("Pausar grafica energia cinetica##pausa_datos_energia_cinetica_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_energia_cinetica, pausada);
+							ImGui::SameLine();
+							if(ImGui::Button(std::string("Borrar grafica energia cinetica##eliminar_datos_energia_cinetica_" + std::to_string(index_actual)).c_str()))
+								planeta.cambiarEstadoRecoleccionDatos(dat_energia_cinetica, vacia);
+
+							planeta.verGraficoEnergiaCinetica();
+
+							if(ImGui::Button(std::string("Guardar grafica energia cinetica##guardar_datos_energia_cinetica_" + std::to_string(index_actual)).c_str()))
+								planeta.guardarGrafica(dat_energia_cinetica);
+						}
+						ImGui::Unindent();	
+
+					ImGui::Unindent();
 				ImGui::Unindent();
 			}
-			ImGui::Unindent();
 		}		
 		ImGui::End();
 
 		if(index_vista_fija != -1)
 			camara.cambiarPlanetaTarget(lista_planetas[index_vista_fija], index_vista_fija, fijar_planeta);
 
-		if(!pausar_simulacion)
-		{
-			for(int i = 0; i < velocidad; i++)
-				for(cPlaneta & planeta : lista_planetas)
-					planeta.updatePosition(delta_tiempo);
-		}
+		for(int i = 0; i < velocidad; i++)
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				float tiempo_vuelta_anterior = planeta.getTiempoVueltaAnterior();
+					
+				//if(planeta.completoUnPeriodo())
+					//std::cout << "\nPeriodo completo de " + planeta.getNombre() + " en " << planeta.getTiempoVueltaAnterior() - tiempo_vuelta_anterior;
 
-		//DrawSphere(tierra.getPosicion(ballPosition.y),0.5f,BLUE);
+				planeta.updatePosition(delta_tiempo);
+			}
+
 		for(cPlaneta & planeta : lista_planetas)
 			DrawSphere(planeta.getPosicion(), planeta.getRadio(), planeta.getColor());
 		
@@ -579,7 +248,7 @@ int main(void)
 		if(!io.WantCaptureKeyboard)
 			camara.detectInput();
     }
-
+	ImPlot::DestroyContext();
 	rlImGuiShutdown();
     CloseWindow();
 
