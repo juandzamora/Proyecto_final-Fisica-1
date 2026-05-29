@@ -62,6 +62,12 @@ int main(void)
 	//Size t que recive negativos (no es como que size_t no lo haga, pero aja, por si acaso. size_t es unsigned)
 	long long index_vista_fija = -1;
 	bool fijar_planeta = false;
+
+
+	int dia_a_parar;
+
+	float tiempo_funcionando = 0.0f;
+	bool plotear_toda_velocidad = false;
     while (!WindowShouldClose())
 	{	
 		BeginDrawing();
@@ -74,23 +80,75 @@ int main(void)
 		ImGui::Begin("Menu");
 		ImGui::TextWrapped("Configuracion general");
 		ImGui::DragInt("Velocidad", &velocidad, 1, 0, 1000);
-
 		
-		
-		static std::string texto_pausa;
+		std::string texto_pausa;
 		static int velocidad_antes_de_pausa;
 		if(velocidad <= 0)
 			texto_pausa = "Despausar simulacion";
 		else
 			texto_pausa = "Pausar simulacion";
 
-
+		
 		if(ImGui::Button(texto_pausa.c_str()))
 		{
 			if(velocidad <= 0)
 				velocidad = 1;
 			else
 				velocidad = 0;
+		}
+
+		ImGui::TextWrapped("Dia actual: %.2f", (365.0f/2238.73f) * tiempo_funcionando);
+
+		ImGui::InputInt("Dia a parar", &dia_a_parar, 0);
+
+		if(dia_a_parar <= (365.0f/2238.73f) * tiempo_funcionando && dia_a_parar > 0)
+		{
+			velocidad = 0;
+			dia_a_parar = 0;
+		}
+
+		std::string texto_plot_velocidad;
+		
+		if(plotear_toda_velocidad)
+			texto_plot_velocidad = "Pausar plot velocidad";
+		else
+			texto_plot_velocidad = "Plotear toda la velocidad";
+
+		if(ImGui::Button(texto_plot_velocidad.c_str()))
+		{
+			plotear_toda_velocidad = !plotear_toda_velocidad;
+
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				if(planeta.getSol()) 
+					continue;
+
+				if(plotear_toda_velocidad)
+				{
+					if(planeta.getEstadoGrafica(dat_velocidad) == pausada)
+						planeta.cambiarEstadoRecoleccionDatos(dat_velocidad, pausada);
+					else
+						planeta.cambiarEstadoRecoleccionDatos(dat_velocidad, activa);
+				}
+				else
+					planeta.cambiarEstadoRecoleccionDatos(dat_velocidad, pausada);
+				
+			}
+		}
+
+		std::string texto_recoger_data_velocidad = "Recoger velocidad de todos";
+		
+
+		if(ImGui::Button(texto_recoger_data_velocidad.c_str()))
+		{
+
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				if(planeta.getSol()) 
+					continue;
+
+				planeta.guardarGrafica(dat_velocidad);
+			}
 		}
 
 		//Lista planetas
@@ -216,7 +274,7 @@ int main(void)
 					
 				//if(planeta.completoUnPeriodo())
 					//std::cout << "\nPeriodo completo de " + planeta.getNombre() + " en " << planeta.getTiempoVueltaAnterior() - tiempo_vuelta_anterior;
-
+				tiempo_funcionando += delta_tiempo;
 				planeta.updatePosition(delta_tiempo);
 			}
 
