@@ -68,6 +68,8 @@ int main(void)
 
 	float tiempo_funcionando = 0.0f;
 	bool plotear_toda_velocidad = false;
+	bool plotear_toda_energia_cinetica = false;
+	bool plotear_toda_aceleracion = false;
     while (!WindowShouldClose())
 	{	
 		BeginDrawing();
@@ -137,7 +139,7 @@ int main(void)
 		}
 
 		std::string texto_recoger_data_velocidad = "Recoger velocidad de todos";
-		
+		ImGui::SameLine();
 
 		if(ImGui::Button(texto_recoger_data_velocidad.c_str()))
 		{
@@ -148,6 +150,95 @@ int main(void)
 					continue;
 
 				planeta.guardarGrafica(dat_velocidad);
+			}
+		}
+
+		std::string texto_plot_aceleracion;
+		
+		if(plotear_toda_aceleracion)
+			texto_plot_aceleracion = "Pausar plot aceleracion";
+		else
+			texto_plot_aceleracion = "Plotear toda la aceleracion";
+
+		if(ImGui::Button(texto_plot_aceleracion.c_str()))
+		{
+			plotear_toda_aceleracion = !plotear_toda_aceleracion;
+
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				if(planeta.getSol()) 
+					continue;
+
+				if(plotear_toda_aceleracion)
+				{
+					if(planeta.getEstadoGrafica(dat_aceleracion) == pausada)
+						planeta.cambiarEstadoRecoleccionDatos(dat_aceleracion, pausada);
+					else
+						planeta.cambiarEstadoRecoleccionDatos(dat_aceleracion, activa);
+				}
+				else
+					planeta.cambiarEstadoRecoleccionDatos(dat_aceleracion, pausada);
+				
+			}
+		}
+
+		std::string texto_recoger_data_aceleracion = "Recoger aceleracion de todos";
+		ImGui::SameLine();
+
+		if(ImGui::Button(texto_recoger_data_aceleracion.c_str()))
+		{
+
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				if(planeta.getSol()) 
+					continue;
+
+				planeta.guardarGrafica(dat_aceleracion);
+			}
+		}
+
+		std::string texto_plot_energia_cinetica;
+		
+		if(plotear_toda_energia_cinetica)
+			texto_plot_energia_cinetica = "Pausar plot energia cinetica";
+		else
+			texto_plot_energia_cinetica = "Plotear toda la energia cinetica";
+
+		if(ImGui::Button(texto_plot_energia_cinetica.c_str()))
+		{
+			plotear_toda_energia_cinetica = !plotear_toda_energia_cinetica;
+
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				if(planeta.getSol()) 
+					continue;
+
+				if(plotear_toda_energia_cinetica)
+				{
+					if(planeta.getEstadoGrafica(dat_energia_cinetica) == pausada)
+						planeta.cambiarEstadoRecoleccionDatos(dat_energia_cinetica, pausada);
+					else
+						planeta.cambiarEstadoRecoleccionDatos(dat_energia_cinetica, activa);
+				}
+				else
+					planeta.cambiarEstadoRecoleccionDatos(dat_energia_cinetica, pausada);
+				
+			}
+		}
+
+		std::string texto_recoger_data_energia_cinetica = "Recoger energia cinetica de todos";
+		
+		ImGui::SameLine();
+
+		if(ImGui::Button(texto_recoger_data_energia_cinetica.c_str()))
+		{
+
+			for(cPlaneta & planeta : lista_planetas)
+			{
+				if(planeta.getSol()) 
+					continue;
+
+				planeta.guardarGrafica(dat_energia_cinetica);
 			}
 		}
 
