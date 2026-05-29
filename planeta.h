@@ -353,22 +353,28 @@ class cPlaneta
 
 		}
 		
-		void verGraficoVelocidad()
+		bool verGraficoVelocidad()
 		{
 			if((grafica_velocidad.estado == activa || grafica_velocidad.estado == pausada) && !grafica_velocidad.grafica->obtenerData().empty())
-				grafica_velocidad.grafica->visualizarGrafica();
+				return grafica_velocidad.grafica->visualizarGrafica(grafica_velocidad.estado == pausada ? true : false);
+
+			return false;
 		}
 
-		void verGraficoAceleracion()
+		bool verGraficoAceleracion()
 		{
 			if((grafica_aceleracion.estado == activa || grafica_aceleracion.estado == pausada) && !grafica_aceleracion.grafica->obtenerData().empty())
-				grafica_aceleracion.grafica->visualizarGrafica();
+				return grafica_aceleracion.grafica->visualizarGrafica(grafica_aceleracion.estado == pausada ? true : false);
+
+			return false;
 		}
 
-		void verGraficoEnergiaCinetica()
+		bool verGraficoEnergiaCinetica()
 		{
 			if((grafica_energia_cinetica.estado == activa || grafica_energia_cinetica.estado == pausada) && !grafica_energia_cinetica.grafica->obtenerData().empty())
-				grafica_energia_cinetica.grafica->visualizarGrafica();
+				return grafica_energia_cinetica.grafica->visualizarGrafica(grafica_energia_cinetica.estado == pausada ? true : false);
+
+			return false;
 		}
 
 		eEstadoGrafica getEstadoGrafica(eRecoleccionDatosPlaneta tipo_de_dato)

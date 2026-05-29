@@ -101,10 +101,10 @@ class cGrafica
 
 
 		//Esto obligatoriamente necesita ser llamado adentro de un recudro de Dear ImGui
-		void visualizarGrafica()
+		bool visualizarGrafica(bool pausado)
 		{	
 			if(lista_data.size() < 3) 
-				return;
+				return false;
 
 			if(ImPlot::BeginPlot(std::string(nombre_grafica).c_str()))
 			{
@@ -117,7 +117,7 @@ class cGrafica
 				if(std::isnan(dia_final_grafica))
 					dia_final_grafica = lista_data[lista_data.size() - 2].x;
 
-				if(dia_final_grafica != dia_final_anterior)
+				if(!pausado)
 					ImPlot::SetupAxisLimits(ImAxis_X1, dia_inicio_grafica, dia_final_grafica + 10, ImGuiCond_Always);
 				
 				ImPlot::SetupAxisLimits(ImAxis_Y1, maximo_y, minimo_y, ImGuiCond_Once);
@@ -140,7 +140,11 @@ class cGrafica
 				dia_final_anterior = dia_final_grafica;
 
 				ImPlot::EndPlot();
+
+				return true;
 			}
+
+			return false;
 		}
 
 		void guardarInformacion()
